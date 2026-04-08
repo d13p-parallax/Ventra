@@ -186,7 +186,7 @@
       width:min(980px, calc(100% - 48px));
       display:flex;
       gap:10px;
-      align-items:flex-end;
+      align-items:center;
       background:var(--surface);
       border:1px solid var(--line);
       border-radius:22px;
@@ -249,6 +249,7 @@
     .counter{
       font-size:12px;
       color:var(--muted);
+      display:none;
     }
 
     .btn{
@@ -509,6 +510,7 @@ function hideTypingDots(){
     function updateUI() {
       const len = input.value.length;
       counter.textContent = `${len} / ${MAX}`;
+      counter.style.display = len > 0 ? "block" : "none";
       const tooLong = len > MAX;
       limitWarn.style.display = tooLong ? "block" : "none";
       sendBtn.disabled = (len === 0 || tooLong);
