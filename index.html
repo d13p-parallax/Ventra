@@ -243,27 +243,8 @@
       position:relative;
     }
 
-    .typewriter-ph{
-      position:absolute;
-      inset:0;
-      display:flex;
-      align-items:center;
-      padding:0 10px;
-      font-size:16px;
-      line-height:1.35;
+    textarea::placeholder{
       color:rgba(85,85,85,.45);
-      pointer-events:none;
-    }
-
-    .typewriter-ph::after{
-      content:'|';
-      animation:twBlink .9s step-end infinite;
-      color:rgba(85,85,85,.35);
-    }
-
-    @keyframes twBlink{
-      0%,100%{opacity:1}
-      50%{opacity:0}
     }
 
     .right{
@@ -403,7 +384,6 @@
       <div class="composer">
         <div class="textarea-wrap">
           <textarea id="input" placeholder=""></textarea>
-          <div class="typewriter-ph" id="typewriterPh"></div>
         </div>
         <div class="right">
           <button class="btn" id="sendBtn" disabled>Send</button>
@@ -588,14 +568,13 @@ function hideTypingDots(){
       "I don't know where else to turn right now...",
       "Things have been heavy lately and I need to talk..."
     ];
-    const twEl = document.getElementById("typewriterPh");
     let twPhrase = 0, twChar = 0, twDeleting = false, twTimer = null, twRunning = false;
 
     function typewriterStep() {
       const phrase = TW_PHRASES[twPhrase];
       if (!twDeleting) {
         twChar++;
-        twEl.textContent = phrase.slice(0, twChar);
+        input.placeholder = phrase.slice(0, twChar) + "|";
         if (twChar === phrase.length) {
           twTimer = setTimeout(() => { twDeleting = true; typewriterStep(); }, 2200);
           return;
@@ -603,10 +582,11 @@ function hideTypingDots(){
         twTimer = setTimeout(typewriterStep, 55);
       } else {
         twChar--;
-        twEl.textContent = phrase.slice(0, twChar);
+        input.placeholder = phrase.slice(0, twChar) + "|";
         if (twChar === 0) {
           twDeleting = false;
           twPhrase = (twPhrase + 1) % TW_PHRASES.length;
+          input.placeholder = "|";
           twTimer = setTimeout(typewriterStep, 380);
           return;
         }
@@ -617,14 +597,14 @@ function hideTypingDots(){
     function startTypewriter() {
       if (twRunning || input.value) return;
       twRunning = true;
-      twEl.style.display = "block";
+      input.placeholder = "|";
       typewriterStep();
     }
 
     function stopTypewriter() {
       if (twTimer) clearTimeout(twTimer);
       twRunning = false;
-      twEl.style.display = "none";
+      input.placeholder = "";
     }
 
     input.addEventListener("focus", () => { if (!input.value) stopTypewriter(); });
