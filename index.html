@@ -75,7 +75,7 @@
       display:block;
     }
 
-    h1{ margin:4px 0 0; font-size:18px; letter-spacing:.2px; }
+    h1{ margin:0; font-size:18px; letter-spacing:.2px; }
     .sub{ color:var(--muted); font-size:12px; }
 
     .pill{
@@ -205,9 +205,38 @@
       outline:none;
       background:transparent;
       color:var(--text);
-      padding:10px 10px;
+      padding:12px 10px;
       line-height:1.35;
       font-size:14px;
+    }
+
+    .textarea-wrap{
+      flex:1;
+      position:relative;
+      min-height:44px;
+    }
+
+    .typewriter-ph{
+      position:absolute;
+      inset:0;
+      padding:12px 10px;
+      font-size:14px;
+      line-height:1.35;
+      color:rgba(85,85,85,.45);
+      pointer-events:none;
+      white-space:pre-wrap;
+      overflow:hidden;
+    }
+
+    .typewriter-ph::after{
+      content:'|';
+      animation:twBlink .9s step-end infinite;
+      color:rgba(85,85,85,.35);
+    }
+
+    @keyframes twBlink{
+      0%,100%{opacity:1}
+      50%{opacity:0}
     }
 
     .right{
@@ -351,7 +380,10 @@
       <div class="chat" id="chat"></div>
 
       <div class="composer">
-        <textarea id="input" placeholder="Type here... (max 1500 characters)"></textarea>
+        <div class="textarea-wrap">
+          <textarea id="input" placeholder=""></textarea>
+          <div class="typewriter-ph" id="typewriterPh"></div>
+        </div>
         <div class="right">
           <div class="counter" id="counter">0 / 1500</div>
           <button class="btn" id="sendBtn" disabled>Send</button>
@@ -523,6 +555,59 @@ function hideTypingDots(){
 }
 }
 
+    // ── Typewriter placeholder ──────────────────────────────────
+    const TW_PHRASES = [
+      "I've been holding this in for a while...",
+      "Something happened today that I can't shake...",
+      "I just need to let this out...",
+      "I don't know where else to turn right now...",
+      "Things have been heavy lately and I need to talk..."
+    ];
+    const twEl = document.getElementById("typewriterPh");
+    let twPhrase = 0, twChar = 0, twDeleting = false, twTimer = null, twRunning = false;
+
+    function typewriterStep() {
+      const phrase = TW_PHRASES[twPhrase];
+      if (!twDeleting) {
+        twChar++;
+        twEl.textContent = phrase.slice(0, twChar);
+        if (twChar === phrase.length) {
+          twTimer = setTimeout(() => { twDeleting = true; typewriterStep(); }, 2200);
+          return;
+        }
+        twTimer = setTimeout(typewriterStep, 55);
+      } else {
+        twChar--;
+        twEl.textContent = phrase.slice(0, twChar);
+        if (twChar === 0) {
+          twDeleting = false;
+          twPhrase = (twPhrase + 1) % TW_PHRASES.length;
+          twTimer = setTimeout(typewriterStep, 380);
+          return;
+        }
+        twTimer = setTimeout(typewriterStep, 28);
+      }
+    }
+
+    function startTypewriter() {
+      if (twRunning || input.value) return;
+      twRunning = true;
+      twEl.style.display = "block";
+      typewriterStep();
+    }
+
+    function stopTypewriter() {
+      if (twTimer) clearTimeout(twTimer);
+      twRunning = false;
+      twEl.style.display = "none";
+    }
+
+    input.addEventListener("focus", () => { if (!input.value) stopTypewriter(); });
+    input.addEventListener("blur",  () => { if (!input.value) startTypewriter(); });
+
+    startTypewriter();
+    // ────────────────────────────────────────────────────────────
+
     function sendMessage() {
   if (isPending) return;
 
@@ -534,6 +619,7 @@ function hideTypingDots(){
   addMsg("You", formatNoWall(text), text);
   input.value = "";
   updateUI();
+  startTypewriter();
 
   callBackend(text);
 }
@@ -546,7 +632,11 @@ function hideTypingDots(){
       }
     });
 
-    input.addEventListener("input", updateUI);
+    input.addEventListener("input", () => {
+      updateUI();
+      if (input.value) stopTypewriter();
+      else startTypewriter();
+    });
     sendBtn.addEventListener("click", sendMessage);
 
     reportBtn.addEventListener("click", async () => {
