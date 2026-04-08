@@ -528,7 +528,7 @@ function hideTypingDots(){
 
     function autoResize() {
       input.style.height = "auto";
-      input.style.height = Math.min(input.scrollHeight, 236) + "px";
+      input.style.height = Math.max(42, Math.min(input.scrollHeight, 236)) + "px";
     }
 
     function updateUI() {
