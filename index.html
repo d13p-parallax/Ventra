@@ -75,8 +75,8 @@
       display:block;
     }
 
-    h1{ margin:0; font-size:18px; letter-spacing:.2px; }
-    .sub{ margin:3px 0 0; color:var(--muted); font-size:12px; }
+    h1{ margin:4px 0 0; font-size:18px; letter-spacing:.2px; }
+    .sub{ color:var(--muted); font-size:12px; }
 
     .pill{
       font-size:12px;
@@ -199,7 +199,8 @@
       width:100%;
       min-height:44px;
       max-height:160px;
-      resize:vertical;
+      resize:none;
+      box-sizing:border-box;
       border:none;
       outline:none;
       background:transparent;
@@ -325,12 +326,9 @@
           <div class="avatar">
             <img src="logo.png" alt="Ventra" />
           </div>
-          <div>
-            <h1 id="titleName">Ventra</h1>
-            <div class="sub">Warm. Safe. Steady.</div>
-          </div>
+          <h1 id="titleName">Ventra</h1>
         </div>
-        <div class="pill">v1 beta — limited</div>
+        <div class="pill sub">Warm. Safe. Steady.</div>
       </div>
 
       <!-- SINGLE toggle (this is the only one now) -->
