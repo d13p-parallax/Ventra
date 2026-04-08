@@ -203,7 +203,7 @@
   border-color:rgba(0,0,0,.08);
     }
 
-    /* composer: centered + floating */
+    /* ── Composer ─────────────────────────── */
     .composer{
       position:fixed;
       left:50%;
@@ -211,59 +211,84 @@
       bottom:calc(44px + env(safe-area-inset-bottom, 0px));
       width:min(980px, calc(100% - 48px));
       display:flex;
-      gap:10px;
+      align-items:flex-end;
+      gap:8px;
+      background:rgba(255,255,255,.97);
+      border:1.5px solid rgba(243,170,192,.3);
+      border-radius:28px;
+      padding:8px 8px 8px 20px;
+      box-shadow:0 4px 24px rgba(243,170,192,.2), 0 1px 6px rgba(0,0,0,.05);
+      backdrop-filter:blur(16px);
+      transition:border-color .3s ease, box-shadow .3s ease;
+    }
+
+    .composer:focus-within{
+      border-color:rgba(243,170,192,.65);
+      box-shadow:0 4px 32px rgba(243,170,192,.32), 0 1px 6px rgba(0,0,0,.05), 0 0 0 5px rgba(243,170,192,.1);
+    }
+
+    .textarea-wrap{
+      flex:1;
+      display:flex;
       align-items:center;
-      background:var(--surface);
-      border:1px solid var(--line);
-      border-radius:22px;
-      padding:12px;
-      box-shadow:0 12px 35px rgba(0,0,0,.08);
-      backdrop-filter: blur(6px);
+      min-height:44px;
     }
 
     textarea{
       width:100%;
-      min-height:42px;
-      max-height:236px; /* 10 lines at 16px */
-      height:42px;
+      min-height:44px;
+      max-height:220px;
+      height:44px;
       resize:none;
-      box-sizing:border-box;
       border:none;
       outline:none;
       overflow-y:auto;
       background:transparent;
       color:var(--text);
-      padding:10px 10px;
-      line-height:1.35;
-      font-size:16px;
+      padding:11px 0;
+      line-height:1.47;
+      font-size:15px;
+      font-family:inherit;
+      scrollbar-width:none;
     }
 
-    .textarea-wrap{
-      flex:1;
-      position:relative;
-    }
+    textarea::-webkit-scrollbar{ display:none; }
 
     textarea::placeholder{
-      color:rgba(85,85,85,.45);
+      color:rgba(100,80,85,.4);
     }
 
     .right{
       display:flex;
-      align-items:center;
+      align-items:flex-end;
+      padding-bottom:2px;
     }
 
     .btn{
-      background:#111;
+      width:40px;
+      height:40px;
+      border-radius:14px;
+      border:none;
+      background:#1a1a1a;
       color:#fff;
-      border:0;
-      height:42px;
-      padding:0 16px;
-      border-radius:16px;
       cursor:pointer;
-      font-weight:600;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+      transition:opacity .2s ease, transform .15s ease, background .2s ease;
     }
 
-    .btn:disabled{ opacity:.5; cursor:not-allowed; }
+    .btn svg{
+      width:15px;
+      height:15px;
+      transition:transform .2s ease;
+    }
+
+    .btn:not(:disabled):hover{ background:#333; transform:scale(1.06); }
+    .btn:not(:disabled):hover svg{ transform:translateY(-1px); }
+    .btn:not(:disabled):active{ transform:scale(0.93); }
+    .btn:disabled{ opacity:.28; cursor:not-allowed; }
 
     .footer{
       position:fixed;
@@ -318,7 +343,7 @@
       .modeRow .toggle { margin: 0 auto; }
       .reportBtn { position: static; margin-top: 4px; }
 
-      .composer { width: calc(100% - 24px); }
+      .composer { width: calc(100% - 24px); padding-left:14px; }
       .footer { width: calc(100% - 24px); }
     }
 
@@ -383,10 +408,14 @@
 
       <div class="composer">
         <div class="textarea-wrap">
-          <textarea id="input" placeholder=""></textarea>
+          <textarea id="input" placeholder="" rows="1"></textarea>
         </div>
         <div class="right">
-          <button class="btn" id="sendBtn" disabled>Send</button>
+          <button class="btn" id="sendBtn" disabled aria-label="Send">
+            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -508,7 +537,7 @@ function hideTypingDots(){
 
     function autoResize() {
       input.style.height = "auto";
-      input.style.height = Math.max(42, Math.min(input.scrollHeight, 236)) + "px";
+      input.style.height = Math.max(44, Math.min(input.scrollHeight, 220)) + "px";
     }
 
     function updateUI() {
@@ -623,7 +652,7 @@ function hideTypingDots(){
 
   addMsg("You", formatNoWall(text), text);
   input.value = "";
-  input.style.height = "42px";
+  input.style.height = "44px";
   updateUI();
   startTypewriter();
 
