@@ -186,7 +186,7 @@
       width:min(980px, calc(100% - 48px));
       display:flex;
       gap:10px;
-      align-items:center;
+      align-items:stretch;
       background:var(--surface);
       border:1px solid var(--line);
       border-radius:22px;
@@ -197,9 +197,9 @@
 
     textarea{
       width:100%;
-      min-height:44px;
-      max-height:118px; /* ~5 lines */
-      height:44px;
+      min-height:22px;
+      max-height:173px; /* 8 lines at 16px */
+      height:22px;
       resize:none;
       box-sizing:border-box;
       border:none;
@@ -207,27 +207,28 @@
       overflow-y:auto;
       background:transparent;
       color:var(--text);
-      padding:12px 10px;
+      padding:0 10px;
       line-height:1.35;
-      font-size:14px;
+      font-size:16px;
     }
 
     .textarea-wrap{
       flex:1;
       position:relative;
-      min-height:44px;
+      display:flex;
+      align-items:center;
     }
 
     .typewriter-ph{
       position:absolute;
       inset:0;
-      padding:12px 10px;
-      font-size:14px;
+      display:flex;
+      align-items:center;
+      padding:0 10px;
+      font-size:16px;
       line-height:1.35;
       color:rgba(85,85,85,.45);
       pointer-events:none;
-      white-space:pre-wrap;
-      overflow:hidden;
     }
 
     .typewriter-ph::after{
@@ -301,7 +302,7 @@
     .warn{ color:#b00020; }
 
     @media (max-width: 640px) {
-      textarea { resize: none; font-size: 16px; }
+      textarea { resize: none; }
 
       .role { min-width: 44px; font-size: 11px; }
 
@@ -501,7 +502,7 @@ function hideTypingDots(){
 
     function autoResize() {
       input.style.height = "auto";
-      input.style.height = Math.min(input.scrollHeight, 118) + "px";
+      input.style.height = Math.min(input.scrollHeight, 173) + "px";
     }
 
     function updateUI() {
@@ -616,7 +617,7 @@ function hideTypingDots(){
 
   addMsg("You", formatNoWall(text), text);
   input.value = "";
-  input.style.height = "44px";
+  input.style.height = "22px";
   updateUI();
   startTypewriter();
 
