@@ -37,26 +37,21 @@
       inset:0;
       z-index:-1;
       pointer-events:none;
-      transition:clip-path .65s ease-in-out;
+      transition:opacity .7s ease;
     }
 
     body::before{
       background:linear-gradient(to top, var(--pink) 0%, #ffffff 45%);
-      clip-path:inset(0 0 0 0);
+      opacity:1;
     }
 
     body::after{
       background:linear-gradient(to top, var(--teal) 0%, #ffffff 45%);
-      clip-path:inset(0 0 100% 0); /* hidden: clipped from bottom */
+      opacity:0;
     }
 
-    /* solution mode: wipe pink out top→down, wipe teal in bottom→up */
-    body.solution-mode::before{
-      clip-path:inset(100% 0 0 0);
-    }
-    body.solution-mode::after{
-      clip-path:inset(0 0 0 0);
-    }
+    body.solution-mode::before{ opacity:0; }
+    body.solution-mode::after{  opacity:1; }
 
     /* one clean surface, no boxed header/card */
     .wrap{
