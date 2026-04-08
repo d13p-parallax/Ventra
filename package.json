@@ -1,0 +1,9 @@
+{
+  "name": "ventra",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "openai": "^6.16.0"
+  }
+}
