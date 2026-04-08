@@ -12,6 +12,7 @@
       --muted:#555555;
       --line:rgba(0,0,0,.12);
       --pink:#F3AAC0;
+      --teal:#8FCFCF;
       --surface:rgba(255,255,255,.92);
     }
 
@@ -23,8 +24,38 @@
     body{
       margin:0;
       color:var(--text);
-      background:linear-gradient(to top, var(--pink) 0%, #ffffff 45%);
+      background:none;
       min-height:100dvh;
+      position:relative;
+    }
+
+    /* two background layers that wipe in/out on mode switch */
+    body::before,
+    body::after{
+      content:'';
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      pointer-events:none;
+      transition:clip-path .65s ease-in-out;
+    }
+
+    body::before{
+      background:linear-gradient(to top, var(--pink) 0%, #ffffff 45%);
+      clip-path:inset(0 0 0 0);
+    }
+
+    body::after{
+      background:linear-gradient(to top, var(--teal) 0%, #ffffff 45%);
+      clip-path:inset(0 0 100% 0); /* hidden: clipped from bottom */
+    }
+
+    /* solution mode: wipe pink out top→down, wipe teal in bottom→up */
+    body.solution-mode::before{
+      clip-path:inset(100% 0 0 0);
+    }
+    body.solution-mode::after{
+      clip-path:inset(0 0 0 0);
     }
 
     /* one clean surface, no boxed header/card */
@@ -186,7 +217,7 @@
       width:min(980px, calc(100% - 48px));
       display:flex;
       gap:10px;
-      align-items:stretch;
+      align-items:center;
       background:var(--surface);
       border:1px solid var(--line);
       border-radius:22px;
@@ -197,9 +228,9 @@
 
     textarea{
       width:100%;
-      min-height:22px;
-      max-height:173px; /* 8 lines at 16px */
-      height:22px;
+      min-height:42px;
+      max-height:236px; /* 10 lines at 16px */
+      height:42px;
       resize:none;
       box-sizing:border-box;
       border:none;
@@ -207,7 +238,7 @@
       overflow-y:auto;
       background:transparent;
       color:var(--text);
-      padding:0 10px;
+      padding:10px 10px;
       line-height:1.35;
       font-size:16px;
     }
@@ -215,8 +246,6 @@
     .textarea-wrap{
       flex:1;
       position:relative;
-      display:flex;
-      align-items:center;
     }
 
     .typewriter-ph{
@@ -251,7 +280,8 @@
       background:#111;
       color:#fff;
       border:0;
-      padding:10px 16px;
+      height:42px;
+      padding:0 16px;
       border-radius:16px;
       cursor:pointer;
       font-weight:600;
@@ -428,6 +458,7 @@ function setPending(state){
 
     function setMode(next) {
       mode = next;
+      document.body.classList.toggle("solution-mode", mode === "solution");
 
       // visual state
       modeButtons.forEach(btn => {
@@ -502,7 +533,7 @@ function hideTypingDots(){
 
     function autoResize() {
       input.style.height = "auto";
-      input.style.height = Math.min(input.scrollHeight, 173) + "px";
+      input.style.height = Math.min(input.scrollHeight, 236) + "px";
     }
 
     function updateUI() {
@@ -617,7 +648,7 @@ function hideTypingDots(){
 
   addMsg("You", formatNoWall(text), text);
   input.value = "";
-  input.style.height = "22px";
+  input.style.height = "42px";
   updateUI();
   startTypewriter();
 
