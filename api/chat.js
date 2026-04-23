@@ -1,5 +1,7 @@
 require("dotenv").config();
 const OpenAI = require("openai");
+const { requireAuth, checkAndIncrementUsage, supabaseAdmin } = require("./_auth");
+const { PLANS } = require("./_plans");
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -117,14 +119,71 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   try {
-    const { message, mode = "vent", history = [] } = req.body;
-    const cleanHistory = normalizeHistory(history);
+    const {
+      message,
+      mode = "vent",
+      history = [],
+      conversationId = null,
+      anonCount = 0
+    } = req.body;
 
-    let effectiveMode = mode;
-    if ((mode === "vent" || !mode) && detectDirectRequest(message)) {
-      effectiveMode = "solution";
+    // ── 1. Auth: try to get a logged-in user; fall back to anonymous ──
+    let user = null, profile = null;
+    const authHeader = req.headers["authorization"] || "";
+    if (authHeader.startsWith("Bearer ")) {
+      try {
+        const result = await requireAuth(req);
+        user    = result.user;
+        profile = result.profile;
+      } catch (e) {
+        return res.status(e.status || 401).json({ error: e.message });
+      }
     }
 
+    const plan = profile?.plan || "anonymous";
+    const planConfig = PLANS[plan];
+
+    // ── 2. Anonymous session cap (client tracks count, server double-checks) ──
+    if (!user && anonCount >= PLANS.anonymous.sessionCap) {
+      return res.status(429).json({
+        error: "Trial limit reached. Create a free account to continue.",
+        limitReached: true,
+        plan: "anonymous"
+      });
+    }
+
+    // ── 3. Daily usage cap for logged-in users ──
+    let dayCount = 0;
+    if (user) {
+      try {
+        dayCount = await checkAndIncrementUsage(user.id, plan, PLANS);
+      } catch (e) {
+        if (e.limitReached) {
+          return res.status(429).json({
+            error: e.message,
+            limitReached: true,
+            plan,
+            cap: e.cap,
+            dayCount: e.currentCount
+          });
+        }
+        throw e;
+      }
+    }
+
+    // ── 4. Feature gates ──
+    let effectiveMode = mode;
+    if (!planConfig.modes.includes("solution") && mode === "solution") {
+      effectiveMode = "vent";
+    }
+    if ((effectiveMode === "vent" || !effectiveMode) && detectDirectRequest(message)) {
+      if (planConfig.modes.includes("solution")) {
+        effectiveMode = "solution";
+      }
+    }
+
+    // ── 5. Build & call OpenAI ──
+    const cleanHistory = normalizeHistory(history);
     const instructions = buildInstructions(effectiveMode);
     const input = [
       { role: "developer", content: instructions },
@@ -134,7 +193,28 @@ module.exports = async function handler(req, res) {
 
     const response = await client.responses.create({ model: "gpt-5-mini", input });
     const reply = response.output_text || "I didn't get text back—try again.";
-    res.json({ reply, mode: effectiveMode });
+
+    // ── 6. Persist messages for Pro/Premium ──
+    let activeConversationId = conversationId;
+    if (user && planConfig.historyPersist) {
+      if (!activeConversationId) {
+        const { data: conv } = await supabaseAdmin
+          .from("conversations")
+          .insert({ user_id: user.id, mode: effectiveMode })
+          .select("id")
+          .single();
+        activeConversationId = conv?.id ?? null;
+      }
+
+      if (activeConversationId) {
+        await supabaseAdmin.from("messages").insert([
+          { conversation_id: activeConversationId, user_id: user.id, role: "user",      content: message },
+          { conversation_id: activeConversationId, user_id: user.id, role: "assistant", content: reply },
+        ]);
+      }
+    }
+
+    res.json({ reply, mode: effectiveMode, conversationId: activeConversationId, dayCount });
   } catch (err) {
     console.error(err);
     res.status(500).json({ reply: "Something went wrong connecting to AI." });

@@ -1,5 +1,7 @@
 require("dotenv").config();
 const OpenAI = require("openai");
+const { requireAuth } = require("./_auth");
+const { PLANS } = require("./_plans");
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -12,6 +14,19 @@ function normalizeHistory(history) {
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+
+  // Auth required — reports are a Pro/Premium feature
+  let profile;
+  try {
+    const result = await requireAuth(req);
+    profile = result.profile;
+  } catch (e) {
+    return res.status(e.status || 401).json({ error: e.message });
+  }
+
+  if (!PLANS[profile.plan]?.reports) {
+    return res.status(403).json({ error: "Reports are available on Pro and Premium plans." });
+  }
 
   try {
     const { history = [] } = req.body;

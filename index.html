@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ventra — v1 beta (limited)</title>
-<link rel="icon" type="image/x-icon" href="./favicon.ico">
+  <title>Ventra</title>
+  <link rel="icon" type="image/x-icon" href="./favicon.ico">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <style>
     :root{
@@ -29,7 +30,6 @@
       position:relative;
     }
 
-    /* two background layers that wipe in/out on mode switch */
     body::before,
     body::after{
       content:'';
@@ -53,11 +53,10 @@
     body.solution-mode::before{ opacity:0; }
     body.solution-mode::after{  opacity:1; }
 
-    /* one clean surface, no boxed header/card */
     .wrap{
       max-width:980px;
       margin:0 auto;
-      padding:18px 24px calc(170px + env(safe-area-inset-bottom, 0px)); /* bottom space for fixed composer + footer */
+      padding:18px 24px calc(170px + env(safe-area-inset-bottom, 0px));
     }
 
     .card{
@@ -67,7 +66,6 @@
       padding:0;
     }
 
-    /* header (no darker band) */
     .top{
       display:flex;
       align-items:center;
@@ -82,6 +80,7 @@
       display:flex;
       align-items:center;
       gap:10px;
+      flex-shrink:0;
     }
 
     .avatar{
@@ -113,7 +112,97 @@
       background:rgba(255,255,255,.65);
     }
 
-    /* CENTERED toggle + description (like your mock) */
+    /* ── User badge ─────────────────────────── */
+    .userBadge{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .userEmail{
+      font-size:12px;
+      color:var(--muted);
+      max-width:160px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .planChip{
+      font-size:10px;
+      font-weight:600;
+      padding:3px 8px;
+      border-radius:999px;
+      text-transform:uppercase;
+      letter-spacing:.3px;
+    }
+
+    .plan-basic   { background:rgba(0,0,0,.06);          color:#555; }
+    .plan-pro     { background:rgba(243,170,192,.40);    color:#7a3050; }
+    .plan-premium { background:rgba(143,207,207,.40);    color:#1a5f5f; }
+
+    .badgeBtn{
+      font-size:11px;
+      color:var(--muted);
+      border:1px solid var(--line);
+      padding:5px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.65);
+      cursor:pointer;
+      font-family:inherit;
+      transition:background .2s;
+    }
+
+    .badgeBtn:hover{ background:rgba(255,255,255,.95); }
+
+    /* ── Usage bar ──────────────────────────── */
+    .usageBar{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 0 2px;
+    }
+
+    .usageText{
+      font-size:11px;
+      color:var(--muted);
+      white-space:nowrap;
+      min-width:120px;
+    }
+
+    .usageTrack{
+      flex:1;
+      height:3px;
+      background:var(--line);
+      border-radius:2px;
+      overflow:hidden;
+    }
+
+    .usageFill{
+      height:100%;
+      background:var(--pink);
+      border-radius:2px;
+      transition:width .4s ease;
+    }
+
+    .upgradeLink{
+      font-size:11px;
+      color:var(--muted);
+      background:none;
+      border:none;
+      cursor:pointer;
+      font-family:inherit;
+      padding:0;
+      white-space:nowrap;
+      text-decoration:underline;
+      text-decoration-color:var(--line);
+    }
+
+    .upgradeLink:hover{ color:var(--text); }
+
+    /* ── Mode toggle ────────────────────────── */
     .modebar{
       display:flex;
       flex-direction:column;
@@ -138,13 +227,19 @@
       cursor:pointer;
       font-size:13px;
       border-radius:0;
+      font-family:inherit;
+      transition:opacity .2s;
     }
 
-    /* selected mode: clear edge + fill */
     .toggle button.active{
       background:#ffffff;
       color:var(--text);
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+    }
+
+    .toggle button:disabled{
+      opacity:.35;
+      cursor:not-allowed;
     }
 
     .modeDesc{
@@ -153,7 +248,7 @@
       text-align:center;
     }
 
-    /* chat area: centered, tall, clean */
+    /* ── Chat ───────────────────────────────── */
     .chat{
       margin-top:22px;
       background:transparent;
@@ -163,11 +258,11 @@
     }
 
     .msg{
-  width:100%;
-  margin:12px 0;
-  display:flex;
-  gap:12px;
-  align-items:flex-start;
+      width:100%;
+      margin:12px 0;
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
     }
 
     .role{
@@ -177,19 +272,19 @@
       padding-top:8px;
     }
 
-.bubble{
-  width: fit-content;
-  max-width: 640px;
-  padding:12px 14px;
-  border-radius:18px;
-  border:1px solid var(--line);
-  line-height:1.45;
-  background:rgba(255,255,255,.85);
-}
+    .bubble{
+      width:fit-content;
+      max-width:640px;
+      padding:12px 14px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      line-height:1.45;
+      background:rgba(255,255,255,.85);
+    }
 
-.msg.user{
-  justify-content:flex-end;
-  flex-direction:row;
+    .msg.user{
+      justify-content:flex-end;
+      flex-direction:row;
     }
 
     .msg.user .role{
@@ -198,12 +293,12 @@
       text-align:left;
     }
 
-.msg.user .bubble{
-  background:#f5bbcc;
-  border-color:rgba(0,0,0,.08);
+    .msg.user .bubble{
+      background:#f5bbcc;
+      border-color:rgba(0,0,0,.08);
     }
 
-    /* ── Composer ─────────────────────────── */
+    /* ── Composer ───────────────────────────── */
     .composer{
       position:fixed;
       left:50%;
@@ -253,10 +348,7 @@
     }
 
     textarea::-webkit-scrollbar{ display:none; }
-
-    textarea::placeholder{
-      color:rgba(100,80,85,.4);
-    }
+    textarea::placeholder{ color:rgba(100,80,85,.4); }
 
     .right{
       display:flex;
@@ -279,12 +371,7 @@
       transition:opacity .2s ease, transform .15s ease, background .2s ease;
     }
 
-    .btn svg{
-      width:15px;
-      height:15px;
-      transition:transform .2s ease;
-    }
-
+    .btn svg{ width:15px; height:15px; transition:transform .2s ease; }
     .btn:not(:disabled):hover{ background:#333; transform:scale(1.06); }
     .btn:not(:disabled):hover svg{ transform:translateY(-1px); }
     .btn:not(:disabled):active{ transform:scale(0.93); }
@@ -304,182 +391,1110 @@
       padding:0;
       margin:0;
     }
-  .modeRow{
-  width:100%;
-  position:relative;
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
 
-/* keep the toggle perfectly centered */
-.modeRow .toggle{
-  margin:0 auto;
-}
+    .modeRow{
+      width:100%;
+      position:relative;
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
 
-/* pin report button to the right */
-.reportBtn{
-  position:absolute;
-  right:0;
-  cursor:pointer;
-  user-select:none;
-}
+    .modeRow .toggle{ margin:0 auto; }
 
-.reportBtn:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-}
+    .reportBtn{
+      position:absolute;
+      right:0;
+      cursor:pointer;
+      user-select:none;
+      font-family:inherit;
+    }
+
+    .reportBtn:disabled{ opacity:.5; cursor:not-allowed; }
 
     .warn{ color:#b00020; }
 
-    @media (max-width: 640px) {
-      textarea { resize: none; }
-
-      .role { min-width: 44px; font-size: 11px; }
-
-      .toggle button { padding: 12px 20px; font-size: 14px; }
-
-      .modeRow { flex-wrap: wrap; justify-content: center; }
-      .modeRow .toggle { margin: 0 auto; }
-      .reportBtn { position: static; margin-top: 4px; }
-
-      .composer { width: calc(100% - 24px); padding-left:14px; }
-      .footer { width: calc(100% - 24px); }
+    /* ── Typing dots ────────────────────────── */
+    .typingDots{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      justify-content:flex-start;
+      min-width:60px;
     }
 
-.typingDots{
-  display:flex;
-  gap:6px;
-  align-items:center;
-  justify-content:flex-start;
-  min-width:60px;
-}
+    .typingDots .dot{
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:rgba(0,0,0,.35);
+      display:inline-block;
+      animation:bounce 1.1s infinite ease-in-out;
+    }
 
-.typingDots .dot{
-  width:7px;
-  height:7px;
-  border-radius:50%;
-  background:rgba(0,0,0,.35);
-  display:inline-block;
-  animation:bounce 1.1s infinite ease-in-out;
-}
+    .typingDots .dot:nth-child(2){ animation-delay:.15s; }
+    .typingDots .dot:nth-child(3){ animation-delay:.30s; }
 
-.typingDots .dot:nth-child(2){ animation-delay:.15s; }
-.typingDots .dot:nth-child(3){ animation-delay:.30s; }
+    @keyframes bounce{
+      0%, 80%, 100% { transform:translateY(0); opacity:.35; }
+      40% { transform:translateY(-6px); opacity:.9; }
+    }
 
-@keyframes bounce{
-  0%, 80%, 100% { transform: translateY(0); opacity:.35; }
-  40% { transform: translateY(-6px); opacity:.9; }
-}
+    /* ── Landing view ───────────────────────── */
+    .landingView{
+      min-height:100dvh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:0 24px 60px;
+    }
+
+    .landingWrap{
+      max-width:760px;
+      width:100%;
+      padding-top:24px;
+    }
+
+    .landingTop{
+      display:flex;
+      justify-content:flex-end;
+      margin-bottom:52px;
+    }
+
+    .landingHero{
+      text-align:center;
+      margin-bottom:28px;
+    }
+
+    .landingHero .avatar{
+      width:48px;
+      height:48px;
+      border-radius:14px;
+      margin:0 auto 16px;
+    }
+
+    .landingTitle{
+      font-size:36px;
+      font-weight:700;
+      margin:0 0 10px;
+      letter-spacing:-.5px;
+    }
+
+    .landingTagline{
+      font-size:18px;
+      color:var(--text);
+      margin:0 0 6px;
+    }
+
+    .landingSub{
+      font-size:14px;
+      color:var(--muted);
+      margin:0;
+    }
+
+    .landingFeatures{
+      display:flex;
+      justify-content:center;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:48px;
+    }
+
+    .featurePill{
+      font-size:12px;
+      color:var(--muted);
+      border:1px solid var(--line);
+      padding:6px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.65);
+    }
+
+    /* ── Pricing ────────────────────────────── */
+    .pricingSection{ margin-bottom:36px; }
+
+    .pricingTitle{
+      text-align:center;
+      font-size:20px;
+      font-weight:600;
+      margin:0 0 24px;
+    }
+
+    .pricingGrid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:16px;
+    }
+
+    .pricingCard{
+      background:rgba(255,255,255,.85);
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:24px;
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      backdrop-filter:blur(8px);
+    }
+
+    .pricingFeatured{
+      border-color:rgba(243,170,192,.7);
+      box-shadow:0 4px 24px rgba(243,170,192,.22);
+    }
+
+    .pricingBadge{
+      position:absolute;
+      top:-11px;
+      left:50%;
+      transform:translateX(-50%);
+      background:var(--pink);
+      font-size:10px;
+      font-weight:700;
+      padding:3px 10px;
+      border-radius:999px;
+      color:#555;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    .pricingPlan{
+      font-size:13px;
+      font-weight:600;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+
+    .pricingPrice{
+      font-size:30px;
+      font-weight:700;
+      color:var(--text);
+      margin:4px 0 2px;
+    }
+
+    .pricingPrice span{
+      font-size:14px;
+      font-weight:400;
+      color:var(--muted);
+    }
+
+    .pricingFeatureList{
+      list-style:none;
+      padding:0;
+      margin:8px 0 16px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      flex:1;
+    }
+
+    .pricingFeatureList li{
+      font-size:13px;
+      color:var(--muted);
+      padding-left:14px;
+      position:relative;
+    }
+
+    .pricingFeatureList li::before{
+      content:'•';
+      position:absolute;
+      left:0;
+      color:var(--pink);
+      font-weight:700;
+    }
+
+    .pricingCta{
+      width:100%;
+      padding:10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.65);
+      font-size:13px;
+      cursor:pointer;
+      font-family:inherit;
+      color:var(--text);
+      transition:background .2s;
+      margin-top:auto;
+    }
+
+    .pricingCta:hover{ background:rgba(255,255,255,.95); }
+
+    .pricingCtaPrimary{
+      background:#1a1a1a;
+      color:#fff;
+      border-color:transparent;
+    }
+
+    .pricingCtaPrimary:hover{ background:#333; }
+
+    /* ── Trial CTA ──────────────────────────── */
+    .landingTrial{
+      text-align:center;
+      padding-top:8px;
+    }
+
+    .trialBtn{
+      background:none;
+      border:none;
+      font-size:14px;
+      color:var(--muted);
+      cursor:pointer;
+      font-family:inherit;
+      text-decoration:underline;
+      text-decoration-color:var(--line);
+    }
+
+    .trialBtn:hover{ color:var(--text); }
+
+    .trialNote{
+      font-size:12px;
+      color:var(--muted);
+      margin:6px 0 0;
+    }
+
+    /* ── Modals ─────────────────────────────── */
+    .modalOverlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.28);
+      backdrop-filter:blur(6px);
+      z-index:200;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    .modalBox{
+      background:rgba(255,255,255,.98);
+      border-radius:24px;
+      padding:32px;
+      width:100%;
+      max-width:400px;
+      position:relative;
+      border:1px solid var(--line);
+      box-shadow:0 16px 48px rgba(0,0,0,.12);
+    }
+
+    .modalClose{
+      position:absolute;
+      top:14px;
+      right:18px;
+      background:none;
+      border:none;
+      font-size:22px;
+      cursor:pointer;
+      color:var(--muted);
+      line-height:1;
+      padding:4px;
+      font-family:inherit;
+    }
+
+    .modalTitle{
+      font-size:18px;
+      font-weight:600;
+      margin:0 0 16px;
+    }
+
+    /* Auth modal */
+    .modalTabs{
+      display:flex;
+      border:1px solid var(--line);
+      border-radius:999px;
+      overflow:hidden;
+      margin-bottom:20px;
+    }
+
+    .modalTab{
+      flex:1;
+      background:transparent;
+      border:none;
+      padding:10px;
+      font-size:13px;
+      cursor:pointer;
+      font-family:inherit;
+      color:var(--muted);
+    }
+
+    .modalTab.active{
+      background:#fff;
+      color:var(--text);
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);
+    }
+
+    .authInput{
+      width:100%;
+      padding:12px 16px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      font-size:14px;
+      font-family:inherit;
+      background:rgba(255,255,255,.8);
+      color:var(--text);
+      outline:none;
+      margin-bottom:10px;
+      display:block;
+      transition:border-color .2s, box-shadow .2s;
+    }
+
+    .authInput:focus{
+      border-color:rgba(243,170,192,.7);
+      box-shadow:0 0 0 3px rgba(243,170,192,.15);
+    }
+
+    .authSubmitBtn{
+      width:100%;
+      padding:12px;
+      background:#1a1a1a;
+      color:#fff;
+      border:none;
+      border-radius:999px;
+      font-size:14px;
+      font-family:inherit;
+      cursor:pointer;
+      margin-top:4px;
+      transition:background .2s;
+    }
+
+    .authSubmitBtn:hover{ background:#333; }
+    .authSubmitBtn:disabled{ opacity:.5; cursor:not-allowed; }
+
+    .authError{
+      background:rgba(176,0,32,.07);
+      color:#b00020;
+      border-radius:10px;
+      padding:10px 14px;
+      font-size:13px;
+      margin-bottom:14px;
+      line-height:1.4;
+    }
+
+    .authNote{
+      font-size:12px;
+      color:var(--muted);
+      margin:0 0 12px;
+      line-height:1.4;
+    }
+
+    .authSuccess{
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+      margin-top:16px;
+      line-height:1.5;
+    }
+
+    /* Upgrade modal */
+    .upgradeMessage{
+      font-size:14px;
+      color:var(--muted);
+      margin:0 0 20px;
+      line-height:1.5;
+    }
+
+    .upgradeActions{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .upgradeActionBtn{
+      padding:12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.65);
+      font-size:13px;
+      cursor:pointer;
+      font-family:inherit;
+      color:var(--text);
+      transition:background .2s;
+    }
+
+    .upgradeActionBtn:hover{ background:rgba(255,255,255,.95); }
+
+    .upgradeActionBtn.primary{
+      background:#1a1a1a;
+      color:#fff;
+      border-color:transparent;
+    }
+
+    .upgradeActionBtn.primary:hover{ background:#333; }
+
+    /* Toast notification */
+    .toast{
+      position:fixed;
+      bottom:calc(100px + env(safe-area-inset-bottom,0px));
+      left:50%;
+      transform:translateX(-50%) translateY(10px);
+      background:#1a1a1a;
+      color:#fff;
+      padding:10px 20px;
+      border-radius:999px;
+      font-size:13px;
+      z-index:300;
+      opacity:0;
+      transition:opacity .3s ease, transform .3s ease;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+
+    .toast.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(0);
+    }
+
+    /* ── Responsive ─────────────────────────── */
+    @media (max-width: 640px) {
+      textarea{ resize:none; }
+      .role{ min-width:44px; font-size:11px; }
+      .toggle button{ padding:12px 20px; font-size:14px; }
+      .modeRow{ flex-wrap:wrap; justify-content:center; }
+      .modeRow .toggle{ margin:0 auto; }
+      .reportBtn{ position:static; margin-top:4px; }
+      .composer{ width:calc(100% - 24px); padding-left:14px; }
+      .footer{ width:calc(100% - 24px); }
+      .pricingGrid{ grid-template-columns:1fr; }
+      .userEmail{ display:none; }
+      .usageText{ min-width:auto; }
+      .landingTitle{ font-size:28px; }
+      .landingTagline{ font-size:16px; }
+    }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div class="top">
-        <div class="brand">
-          <div class="avatar">
-            <img src="logo.png" alt="Ventra" />
+
+  <!-- ══════════════════════════════════════════════════════
+       LANDING VIEW — shown when logged out
+  ══════════════════════════════════════════════════════ -->
+  <div id="landingView" class="landingView">
+    <div class="landingWrap">
+
+      <div class="landingTop">
+        <button class="pill" style="cursor:pointer;" onclick="openAuthModal('signin')">Sign in</button>
+      </div>
+
+      <div class="landingHero">
+        <div class="avatar">
+          <img src="logo.png" alt="Ventra" />
+        </div>
+        <h1 class="landingTitle">Ventra</h1>
+        <p class="landingTagline">A safe space to process what's on your mind.</p>
+        <p class="landingSub">Warm. Steady. Private.</p>
+      </div>
+
+      <div class="landingFeatures">
+        <span class="featurePill">No judgment</span>
+        <span class="featurePill">Not therapy — but helpful</span>
+        <span class="featurePill">Private by default</span>
+      </div>
+
+      <div class="pricingSection">
+        <h2 class="pricingTitle">Choose a plan</h2>
+        <div class="pricingGrid">
+
+          <!-- Basic -->
+          <div class="pricingCard">
+            <div class="pricingPlan">Basic</div>
+            <div class="pricingPrice">Free</div>
+            <ul class="pricingFeatureList">
+              <li>10 messages / day</li>
+              <li>Vent mode</li>
+              <li>Free forever</li>
+            </ul>
+            <button class="pricingCta" onclick="openAuthModal('signup')">Get started free</button>
           </div>
-          <h1 id="titleName">Ventra</h1>
-        </div>
-        <div class="pill sub">Warm. Safe. Steady.</div>
-      </div>
 
-      <!-- SINGLE toggle (this is the only one now) -->
-      <div class="modebar">
-  <div class="modeRow">
-    <div class="toggle" id="modeToggle">
-      <button type="button" class="active" data-mode="vent">Vent</button>
-      <button type="button" data-mode="solution">Solution</button>
-    </div>
+          <!-- Pro -->
+          <div class="pricingCard pricingFeatured">
+            <div class="pricingBadge">Popular</div>
+            <div class="pricingPlan">Pro</div>
+            <div class="pricingPrice" id="landingProPrice">—<span>/mo</span></div>
+            <ul class="pricingFeatureList">
+              <li>100 messages / day</li>
+              <li>Vent + Solution mode</li>
+              <li>Session reports</li>
+              <li>History saved</li>
+            </ul>
+            <button class="pricingCta pricingCtaPrimary" id="proCtaBtn" onclick="handleUpgradeClick('pro')">Upgrade to Pro</button>
+          </div>
 
-    <button type="button" class="pill reportBtn" id="reportBtn" style="display:none;">Get Report</button>
+          <!-- Premium -->
+          <div class="pricingCard">
+            <div class="pricingPlan">Premium</div>
+            <div class="pricingPrice" id="landingPremiumPrice">—<span>/mo</span></div>
+            <ul class="pricingFeatureList">
+              <li>Unlimited messages</li>
+              <li>All modes + features</li>
+              <li>Full history & export</li>
+              <li>Early access</li>
+            </ul>
+            <button class="pricingCta" id="premiumCtaBtn" onclick="handleUpgradeClick('premium')">Upgrade to Premium</button>
+          </div>
 
-  </div>
-
-  <div class="modeDesc" id="modeDesc">
-    Vent mode: listen + reflect (no fixing unless asked).
-  </div>
-</div>
-
-      <div class="chat" id="chat"></div>
-
-      <div class="composer">
-        <div class="textarea-wrap">
-          <textarea id="input" placeholder="" rows="1"></textarea>
-        </div>
-        <div class="right">
-          <button class="btn" id="sendBtn" disabled aria-label="Send">
-            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
         </div>
       </div>
 
-      <div class="footer">
-        <div>This is not a medical app and not a replacement for professional help.</div>
-        <div class="warn" id="limitWarn" style="display:none;">Input too long — shorten it to 1500 characters.</div>
+      <div class="landingTrial">
+        <button class="trialBtn" onclick="startAnonymous()">Try without an account →</button>
+        <p class="trialNote">5 messages, no sign-up needed.</p>
       </div>
+
     </div>
   </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       APP VIEW — shown when logged in OR anonymous mode
+  ══════════════════════════════════════════════════════ -->
+  <div id="appView" style="display:none;">
+    <div class="wrap">
+      <div class="card">
+
+        <div class="top">
+          <div class="brand">
+            <div class="avatar">
+              <img src="logo.png" alt="Ventra" />
+            </div>
+            <h1 id="titleName">Ventra</h1>
+          </div>
+
+          <!-- Tagline pill shown for anonymous users -->
+          <div id="taglinePill" class="pill sub">Warm. Safe. Steady.</div>
+
+          <!-- User badge shown for logged-in users -->
+          <div id="userBadge" class="userBadge" style="display:none;">
+            <span id="userEmail" class="userEmail"></span>
+            <span id="planChip" class="planChip plan-basic">Basic</span>
+            <button class="badgeBtn" onclick="openBillingPortal()" id="manageBtn" style="display:none;">Manage</button>
+            <button class="badgeBtn" onclick="signOut()">Sign out</button>
+          </div>
+        </div>
+
+        <!-- Usage bar (basic/pro only) -->
+        <div id="usageBar" class="usageBar" style="display:none;">
+          <span id="usageText" class="usageText">0 / 10 messages today</span>
+          <div class="usageTrack"><div id="usageFill" class="usageFill" style="width:0%"></div></div>
+          <button class="upgradeLink" onclick="openUpgradeModal()">Upgrade</button>
+        </div>
+
+        <div class="modebar">
+          <div class="modeRow">
+            <div class="toggle" id="modeToggle">
+              <button type="button" class="active" data-mode="vent">Vent</button>
+              <button type="button" data-mode="solution">Solution</button>
+            </div>
+            <button type="button" class="pill reportBtn" id="reportBtn" style="display:none;">Get Report</button>
+          </div>
+          <div class="modeDesc" id="modeDesc">
+            Vent mode: listen + reflect (no fixing unless asked).
+          </div>
+        </div>
+
+        <div class="chat" id="chat"></div>
+
+        <div class="composer">
+          <div class="textarea-wrap">
+            <textarea id="input" placeholder="" rows="1"></textarea>
+          </div>
+          <div class="right">
+            <button class="btn" id="sendBtn" disabled aria-label="Send">
+              <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div>This is not a medical app and not a replacement for professional help.</div>
+          <div class="warn" id="limitWarn" style="display:none;">Input too long — shorten it to 1500 characters.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       AUTH MODAL
+  ══════════════════════════════════════════════════════ -->
+  <div id="authModal" class="modalOverlay" style="display:none;" onclick="handleOverlayClick(event,'authModal')">
+    <div class="modalBox">
+      <button class="modalClose" onclick="closeAuthModal()">×</button>
+
+      <div class="modalTabs">
+        <button id="tabSignIn" class="modalTab active" onclick="switchAuthTab('signin')">Sign In</button>
+        <button id="tabSignUp" class="modalTab" onclick="switchAuthTab('signup')">Sign Up</button>
+      </div>
+
+      <div id="authError" class="authError" style="display:none;"></div>
+      <div id="authSuccess" class="authSuccess" style="display:none;"></div>
+
+      <form id="authForm" onsubmit="handleAuthSubmit(event)">
+        <input type="email"    id="authEmail"    class="authInput" placeholder="Email"    required autocomplete="email" />
+        <input type="password" id="authPassword" class="authInput" placeholder="Password" required autocomplete="current-password" minlength="6" />
+        <p id="signupNote" class="authNote" style="display:none;">Min 6 characters. Check your email to confirm after signing up.</p>
+        <button type="submit" id="authSubmitBtn" class="authSubmitBtn">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       UPGRADE MODAL
+  ══════════════════════════════════════════════════════ -->
+  <div id="upgradeModal" class="modalOverlay" style="display:none;" onclick="handleOverlayClick(event,'upgradeModal')">
+    <div class="modalBox">
+      <button class="modalClose" onclick="closeUpgradeModal()">×</button>
+      <h2 class="modalTitle" id="upgradeTitle">You've reached your limit</h2>
+      <p class="upgradeMessage" id="upgradeMessage"></p>
+      <div class="upgradeActions" id="upgradeActions"></div>
+    </div>
+  </div>
+
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast"></div>
+
 
   <script>
+    // ══════════════════════════════════════════════════════
+    //  PLAN CONFIG — mirrors api/_plans.js
+    //  Update limits here when you adjust api/_plans.js
+    // ══════════════════════════════════════════════════════
+    const PLANS = {
+      anonymous: {
+        label:          "Trial",
+        sessionCap:     5,
+        dailyMessages:  null,
+        modes:          ["vent"],
+        historyPersist: false,
+        reports:        false,
+      },
+      basic: {
+        label:          "Basic",
+        dailyMessages:  10,
+        modes:          ["vent"],
+        historyPersist: false,
+        reports:        false,
+      },
+      pro: {
+        label:          "Pro",
+        priceDisplay:   "$10/mo",
+        stripePriceId:  "price_1TPKEV1MaiSgqTAPMWB7HU2Z",
+        dailyMessages:  100,
+        modes:          ["vent", "solution"],
+        historyPersist: true,
+        reports:        true,
+      },
+      premium: {
+        label:          "Premium",
+        priceDisplay:   "$20/mo",
+        stripePriceId:  "price_1TPKTw1MaiSgqTAPeetGrNgp",
+        dailyMessages:  null,
+        modes:          ["vent", "solution"],
+        historyPersist: true,
+        reports:        true,
+      },
+    };
+
+    // ── Supabase ──────────────────────────────────────────
+    const SUPABASE_URL  = "https://uddjewnbadhpfyipjuff.supabase.co";
+    const SUPABASE_ANON = "sb_publishable_Ch8Cq4rLwKA8xDn7djM5Nw_0HkQwMMW";
+
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // ── App state ─────────────────────────────────────────
     const MAX = 1500;
+    const mascotName   = "Ventra";
+    const BACKEND_URL  = "/api/chat";
+    const REPORT_URL   = "/api/report";
 
-    const mascotName = "Ventra";
-    const BACKEND_URL = "/api/chat";
-    const REPORT_URL  = "/api/report";
+    let currentUser      = null;
+    let currentProfile   = null;
+    let currentSession   = null;
+    let conversationId   = null;
+    let anonMsgCount     = 0;
+    let currentDayCount  = 0;
+    let appVisible       = false;  // true when appView is showing
+    let chatSeeded       = false;  // seed greeting only once
 
-    const chat = document.getElementById("chat");
-    const input = document.getElementById("input");
-    const sendBtn = document.getElementById("sendBtn");
-    const limitWarn = document.getElementById("limitWarn");
-
-    const titleName = document.getElementById("titleName");
-    const modeToggle = document.getElementById("modeToggle");
-    const modeDesc = document.getElementById("modeDesc");
+    // ── DOM refs ──────────────────────────────────────────
+    const chat        = document.getElementById("chat");
+    const input       = document.getElementById("input");
+    const sendBtn     = document.getElementById("sendBtn");
+    const limitWarn   = document.getElementById("limitWarn");
+    const modeToggle  = document.getElementById("modeToggle");
+    const modeDesc    = document.getElementById("modeDesc");
     const modeButtons = Array.from(modeToggle.querySelectorAll("button"));
-    const reportBtn = document.getElementById("reportBtn");
-let isPending = false;
+    const reportBtn   = document.getElementById("reportBtn");
 
-function setPending(state){
-  isPending = state;
-  sendBtn.disabled = state || sendBtn.disabled; // keep disabled if empty/tooLong
-  sendBtn.style.opacity = state ? "0.6" : "1";
-  sendBtn.style.cursor = state ? "not-allowed" : "pointer";
-}
+    let isPending = false;
+    let mode = "vent";
+    let history = [];
 
+    // ══════════════════════════════════════════════════════
+    //  HELPERS
+    // ══════════════════════════════════════════════════════
 
-    titleName.textContent = mascotName;
-    document.title = `${mascotName} — v1 beta (limited)`;
-
-    let mode = "vent"; // "vent" | "solution"
-    let history = []; // session-only, in-memory, not saved anywhere
-    reportBtn.style.display = "none";
-
-    function setMode(next) {
-      mode = next;
-      document.body.classList.toggle("solution-mode", mode === "solution");
-
-      // visual state
-      modeButtons.forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.mode === mode);
-      });
-
-      // description text per mode
-      modeDesc.textContent = (mode === "vent")
-        ? "Vent mode: listen + reflect (no fixing unless asked)."
-        : "Solution mode: clarity-first (we can explore, or switch to concrete options if you want).";
-        reportBtn.style.display = (mode === "solution") ? "inline-block" : "none";
+    function getPlan() {
+      return currentProfile?.plan || (currentUser ? "basic" : "anonymous");
     }
 
-    // wire the toggle buttons
-    modeButtons.forEach(btn => {
-      btn.addEventListener("click", () => setMode(btn.dataset.mode));
+    function authHeaders() {
+      const token = currentSession?.access_token;
+      return {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      };
+    }
+
+    function showToast(msg, duration = 3000) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), duration);
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  SUPABASE AUTH
+    // ══════════════════════════════════════════════════════
+
+    sb.auth.onAuthStateChange(async (event, session) => {
+      currentSession = session;
+      currentUser    = session?.user ?? null;
+
+      if (currentUser) {
+        const { data } = await sb.from("profiles").select("*").eq("id", currentUser.id).single();
+        currentProfile = data;
+        showApp();
+      } else if (!appVisible) {
+        // Not logged in and not in anonymous mode — show landing
+        showLanding();
+      }
+      // If appVisible and signed out: keep showing app (anonymous stay-in flow after sign-out)
     });
+
+    function showApp() {
+      appVisible = true;
+      document.getElementById("landingView").style.display = "none";
+      document.getElementById("appView").style.display     = "block";
+      updateUserBadge();
+      updateUsageBar();
+      enforcePlanUI();
+      seedChat();
+    }
+
+    function showLanding() {
+      appVisible = false;
+      document.getElementById("appView").style.display     = "none";
+      document.getElementById("landingView").style.display = "flex";
+      updateLandingPrices();
+    }
+
+    function startAnonymous() {
+      appVisible = true;
+      document.getElementById("landingView").style.display = "none";
+      document.getElementById("appView").style.display     = "block";
+      updateUserBadge();
+      enforcePlanUI();
+      seedChat();
+    }
+
+    function seedChat() {
+      if (chatSeeded) return;
+      chatSeeded = true;
+      addMsg(mascotName, `<p><b>Hi.</b> Vent or Solution — your call.</p><p>What's on your mind?</p>`);
+      updateUI();
+      startTypewriter();
+    }
+
+    function updateLandingPrices() {
+      const proEl  = document.getElementById("landingProPrice");
+      const preEl  = document.getElementById("landingPremiumPrice");
+      if (proEl)  proEl.innerHTML  = PLANS.pro.priceDisplay.replace("/mo","") + "<span>/mo</span>";
+      if (preEl)  preEl.innerHTML  = PLANS.premium.priceDisplay.replace("/mo","") + "<span>/mo</span>";
+    }
+
+    async function signIn(email, password) {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      return error ? error.message : null;
+    }
+
+    async function signUp(email, password) {
+      const { error } = await sb.auth.signUp({ email, password });
+      return error ? error.message : null;
+    }
+
+    async function signOut() {
+      await sb.auth.signOut();
+      history = [];
+      conversationId   = null;
+      anonMsgCount     = 0;
+      currentDayCount  = 0;
+      currentProfile   = null;
+      currentUser      = null;
+      chat.innerHTML   = "";
+      appVisible       = false;
+      showLanding();
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  USER BADGE & USAGE BAR
+    // ══════════════════════════════════════════════════════
+
+    function updateUserBadge() {
+      const badge   = document.getElementById("userBadge");
+      const tagline = document.getElementById("taglinePill");
+      const manage  = document.getElementById("manageBtn");
+
+      if (currentUser) {
+        badge.style.display   = "flex";
+        tagline.style.display = "none";
+
+        document.getElementById("userEmail").textContent = currentUser.email;
+        const plan      = currentProfile?.plan || "basic";
+        const planLabel = PLANS[plan]?.label || "Basic";
+        const chip      = document.getElementById("planChip");
+        chip.textContent = planLabel;
+        chip.className   = "planChip plan-" + plan;
+
+        // Show "Manage" only if they have a paid plan
+        manage.style.display = (plan === "pro" || plan === "premium") ? "inline-block" : "none";
+      } else {
+        badge.style.display   = "none";
+        tagline.style.display = "block";
+      }
+    }
+
+    function updateUsageBar() {
+      const plan   = getPlan();
+      const config = PLANS[plan];
+      const cap    = config?.dailyMessages ?? null;
+      const bar    = document.getElementById("usageBar");
+
+      // Hide for premium (unlimited) or anonymous (session cap, no bar)
+      if (!cap || !currentUser) { bar.style.display = "none"; return; }
+
+      bar.style.display = "flex";
+      const pct = Math.min((currentDayCount / cap) * 100, 100);
+      document.getElementById("usageFill").style.width = pct + "%";
+      document.getElementById("usageText").textContent = `${currentDayCount} / ${cap} messages today`;
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  PLAN ENFORCEMENT
+    // ══════════════════════════════════════════════════════
+
+    function enforcePlanUI() {
+      const plan      = getPlan();
+      const config    = PLANS[plan];
+      const canSolve  = config.modes.includes("solution");
+      const solveBtn  = modeToggle.querySelector('[data-mode="solution"]');
+
+      solveBtn.disabled = !canSolve;
+      solveBtn.title    = canSolve ? "" : "Upgrade to Pro or Premium to unlock Solution mode";
+
+      if (!canSolve && mode === "solution") setMode("vent");
+
+      const canReport = config.reports;
+      reportBtn.style.display = (canReport && mode === "solution") ? "inline-block" : "none";
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  CHECKOUT & BILLING PORTAL
+    // ══════════════════════════════════════════════════════
+
+    function handleUpgradeClick(planKey) {
+      if (!currentUser) {
+        openAuthModal("signup");
+        return;
+      }
+      startCheckout(PLANS[planKey]?.stripePriceId);
+    }
+
+    async function startCheckout(priceId) {
+      if (!currentUser) { openAuthModal("signup"); return; }
+      if (!priceId || priceId.includes("PLACEHOLDER")) {
+        showToast("Upgrade not available yet — coming soon.");
+        return;
+      }
+      try {
+        const res = await fetch("/api/checkout", {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ priceId })
+        });
+        const { url, error } = await res.json();
+        if (url) window.location.href = url;
+        else showToast(error || "Checkout failed. Try again.");
+      } catch {
+        showToast("Checkout failed. Try again.");
+      }
+    }
+
+    async function openBillingPortal() {
+      try {
+        const res = await fetch("/api/portal", {
+          method: "POST",
+          headers: authHeaders()
+        });
+        const { url, error } = await res.json();
+        if (url) window.location.href = url;
+        else showToast(error || "Could not open billing portal.");
+      } catch {
+        showToast("Could not open billing portal.");
+      }
+    }
+
+    function openUpgradeModal() {
+      showUpgradePrompt(getPlan());
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  AUTH MODAL
+    // ══════════════════════════════════════════════════════
+
+    let authMode = "signin"; // "signin" | "signup"
+
+    function openAuthModal(tab = "signin") {
+      authMode = tab;
+      switchAuthTab(tab);
+      document.getElementById("authError").style.display   = "none";
+      document.getElementById("authSuccess").style.display = "none";
+      document.getElementById("authEmail").value    = "";
+      document.getElementById("authPassword").value = "";
+      document.getElementById("authModal").style.display = "flex";
+    }
+
+    function closeAuthModal() {
+      document.getElementById("authModal").style.display = "none";
+    }
+
+    function switchAuthTab(tab) {
+      authMode = tab;
+      document.getElementById("tabSignIn").classList.toggle("active", tab === "signin");
+      document.getElementById("tabSignUp").classList.toggle("active", tab === "signup");
+      document.getElementById("authSubmitBtn").textContent = tab === "signin" ? "Sign In" : "Create Account";
+      document.getElementById("signupNote").style.display  = tab === "signup" ? "block" : "none";
+      document.getElementById("authError").style.display   = "none";
+      document.getElementById("authSuccess").style.display = "none";
+      document.getElementById("authPassword").autocomplete = tab === "signin" ? "current-password" : "new-password";
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email    = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
+      const btn      = document.getElementById("authSubmitBtn");
+      const errEl    = document.getElementById("authError");
+      const sucEl    = document.getElementById("authSuccess");
+
+      errEl.style.display = "none";
+      sucEl.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = authMode === "signin" ? "Signing in..." : "Creating account...";
+
+      if (authMode === "signin") {
+        const err = await signIn(email, password);
+        if (err) {
+          errEl.textContent   = err;
+          errEl.style.display = "block";
+          btn.disabled = false;
+          btn.textContent = "Sign In";
+        } else {
+          closeAuthModal();
+          // onAuthStateChange will call showApp()
+        }
+      } else {
+        const err = await signUp(email, password);
+        if (err) {
+          errEl.textContent   = err;
+          errEl.style.display = "block";
+          btn.disabled = false;
+          btn.textContent = "Create Account";
+        } else {
+          sucEl.textContent   = "Account created! Check your email to confirm, then sign in.";
+          sucEl.style.display = "block";
+          document.getElementById("authForm").style.display = "none";
+          // Re-show form after 4s so they can sign in
+          setTimeout(() => {
+            document.getElementById("authForm").style.display = "block";
+            sucEl.style.display = "none";
+            switchAuthTab("signin");
+          }, 4000);
+        }
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  UPGRADE MODAL
+    // ══════════════════════════════════════════════════════
+
+    function showUpgradePrompt(currentPlan) {
+      const title   = document.getElementById("upgradeTitle");
+      const msg     = document.getElementById("upgradeMessage");
+      const actions = document.getElementById("upgradeActions");
+      actions.innerHTML = "";
+
+      if (currentPlan === "anonymous") {
+        title.textContent = "Trial limit reached";
+        msg.textContent   = "You've used all 5 trial messages. Create a free account to get 10 messages per day — no payment needed.";
+        const signUpBtn = document.createElement("button");
+        signUpBtn.className   = "upgradeActionBtn primary";
+        signUpBtn.textContent = "Create free account";
+        signUpBtn.onclick     = () => { closeUpgradeModal(); openAuthModal("signup"); };
+        actions.appendChild(signUpBtn);
+
+      } else if (currentPlan === "basic") {
+        title.textContent = "Daily limit reached";
+        msg.textContent   = "You've used all 10 messages for today. Upgrade to Pro for 100 messages/day, Solution mode, and saved history.";
+        const proBtn = document.createElement("button");
+        proBtn.className   = "upgradeActionBtn primary";
+        proBtn.textContent = `Upgrade to Pro — ${PLANS.pro.priceDisplay}`;
+        proBtn.onclick     = () => { closeUpgradeModal(); handleUpgradeClick("pro"); };
+        const premBtn = document.createElement("button");
+        premBtn.className   = "upgradeActionBtn";
+        premBtn.textContent = `Upgrade to Premium — ${PLANS.premium.priceDisplay}`;
+        premBtn.onclick     = () => { closeUpgradeModal(); handleUpgradeClick("premium"); };
+        actions.appendChild(proBtn);
+        actions.appendChild(premBtn);
+
+      } else if (currentPlan === "pro") {
+        title.textContent = "Daily limit reached";
+        msg.textContent   = `You've used all ${PLANS.pro.dailyMessages} messages for today. Upgrade to Premium for unlimited messages.`;
+        const premBtn = document.createElement("button");
+        premBtn.className   = "upgradeActionBtn primary";
+        premBtn.textContent = `Upgrade to Premium — ${PLANS.premium.priceDisplay}`;
+        premBtn.onclick     = () => { closeUpgradeModal(); handleUpgradeClick("premium"); };
+        actions.appendChild(premBtn);
+      }
+
+      document.getElementById("upgradeModal").style.display = "flex";
+    }
+
+    function closeUpgradeModal() {
+      document.getElementById("upgradeModal").style.display = "none";
+    }
+
+    function handleOverlayClick(e, modalId) {
+      if (e.target.id === modalId) {
+        document.getElementById(modalId).style.display = "none";
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  CHAT UI HELPERS
+    // ══════════════════════════════════════════════════════
+
+    function setPending(state) {
+      isPending = state;
+      sendBtn.style.opacity = state ? "0.6" : "1";
+      sendBtn.style.cursor  = state ? "not-allowed" : "pointer";
+    }
 
     function escapeHtml(str) {
       return str.replace(/[&<>"']/g, s => ({
@@ -488,52 +1503,49 @@ function setPending(state){
     }
 
     function formatNoWall(text) {
-  const withBold = escapeHtml(text).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  const parts = withBold.trim().split(/\n\s*\n/).filter(Boolean);
-  return parts
-    .map(p => `<p>${p.trim().replace(/\n/g, "<br>")}</p>`)
-    .join("");
-}
-let typingEl = null;
+      const withBold = escapeHtml(text).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      const parts = withBold.trim().split(/\n\s*\n/).filter(Boolean);
+      return parts.map(p => `<p>${p.trim().replace(/\n/g, "<br>")}</p>`).join("");
+    }
 
-function showTypingDots(){
-  if(typingEl) return;
+    let typingEl = null;
 
-  typingEl = document.createElement("div");
-  typingEl.className = "msg bot";
-  typingEl.innerHTML = `
-    <div class="role">${escapeHtml(mascotName)}</div>
-    <div class="bubble typingDots">
-      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-    </div>
-  `;
-  chat.appendChild(typingEl);
-  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-}
+    function showTypingDots() {
+      if (typingEl) return;
+      typingEl = document.createElement("div");
+      typingEl.className = "msg bot";
+      typingEl.innerHTML = `
+        <div class="role">${escapeHtml(mascotName)}</div>
+        <div class="bubble typingDots">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+      `;
+      chat.appendChild(typingEl);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
 
-function hideTypingDots(){
-  if(!typingEl) return;
-  typingEl.remove();
-  typingEl = null;
-}
+    function hideTypingDots() {
+      if (!typingEl) return;
+      typingEl.remove();
+      typingEl = null;
+    }
 
     function addMsg(role, html, plainTextForHistory = "") {
-  const wrap = document.createElement("div");
-  const isUser = role === "You";
-  wrap.className = "msg " + (isUser ? "user" : "bot");
-  wrap.innerHTML = `
-    <div class="role">${escapeHtml(role)}</div>
-    <div class="bubble">${html}</div>
-  `;
-  chat.appendChild(wrap);
-  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      const wrap   = document.createElement("div");
+      const isUser = role === "You";
+      wrap.className = "msg " + (isUser ? "user" : "bot");
+      wrap.innerHTML = `
+        <div class="role">${escapeHtml(role)}</div>
+        <div class="bubble">${html}</div>
+      `;
+      chat.appendChild(wrap);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 
-  // Store only user/assistant turns (session-only)
-  if (plainTextForHistory) {
-    if (role === "You") history.push({ role: "user", content: plainTextForHistory });
-    else if (role === mascotName) history.push({ role: "assistant", content: plainTextForHistory });
-  }
-}
+      if (plainTextForHistory) {
+        if (role === "You")       history.push({ role: "user",      content: plainTextForHistory });
+        else if (role === mascotName) history.push({ role: "assistant", content: plainTextForHistory });
+      }
+    }
 
     function autoResize() {
       input.style.height = "auto";
@@ -541,55 +1553,92 @@ function hideTypingDots(){
     }
 
     function updateUI() {
-      const len = input.value.length;
+      const len    = input.value.length;
       const tooLong = len > MAX;
       limitWarn.style.display = tooLong ? "block" : "none";
-      sendBtn.disabled = (len === 0 || tooLong);
+      sendBtn.disabled = (len === 0 || tooLong || isPending);
       autoResize();
     }
 
+    // ══════════════════════════════════════════════════════
+    //  BACKEND CALL
+    // ══════════════════════════════════════════════════════
+
     async function callBackend(userText) {
-  try {
-    showTypingDots();
+      try {
+        showTypingDots();
+        await new Promise(requestAnimationFrame);
+        await new Promise(r => setTimeout(r, 300));
 
-    // FORCE browser to paint the dots
-    await new Promise(requestAnimationFrame);
-    await new Promise(r => setTimeout(r, 300));
+        const historyForSend =
+          (history.length &&
+           history[history.length - 1].role === "user" &&
+           history[history.length - 1].content === userText)
+            ? history.slice(0, -1)
+            : history;
 
-    const historyForSend =
-      (history.length &&
-       history[history.length - 1].role === "user" &&
-       history[history.length - 1].content === userText)
-        ? history.slice(0, -1)
-        : history;
+        const res = await fetch(BACKEND_URL, {
+          method:  "POST",
+          headers: authHeaders(),
+          body:    JSON.stringify({
+            message:        userText,
+            mode,
+            history:        historyForSend,
+            conversationId: conversationId,
+            anonCount:      anonMsgCount
+          })
+        });
 
-    const res = await fetch(BACKEND_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: userText,
-        mode,
-        history: historyForSend
-      })
-    });
+        // Handle rate limit / plan cap
+        if (res.status === 429) {
+          const data = await res.json();
+          hideTypingDots();
+          showUpgradePrompt(data.plan || getPlan());
+          setPending(false);
+          return;
+        }
 
-    const data = await res.json();
+        const data = await res.json();
 
-    // If backend auto-switches modes, sync UI
-    if (data.mode && data.mode !== mode) setMode(data.mode);
+        if (data.mode && data.mode !== mode)        setMode(data.mode);
+        if (data.conversationId)                    conversationId = data.conversationId;
+        if (data.dayCount != null) {
+          currentDayCount = data.dayCount;
+          updateUsageBar();
+        }
 
-    const replyText = data.reply || "No reply returned.";
-    hideTypingDots();
-    addMsg(mascotName, formatNoWall(replyText), replyText);
-    setPending(false);
-  } catch (e) {
-     hideTypingDots();
-    addMsg(mascotName, "<p><b>Something went wrong.</b> The connection didn't work.</p>", "Something went wrong. The connection didn't work.");
-  setPending(false);
-}
-}
+        const replyText = data.reply || "No reply returned.";
+        hideTypingDots();
+        addMsg(mascotName, formatNoWall(replyText), replyText);
+        setPending(false);
+      } catch (e) {
+        hideTypingDots();
+        addMsg(mascotName, "<p><b>Something went wrong.</b> The connection didn't work.</p>", "Something went wrong.");
+        setPending(false);
+      }
+    }
 
-    // ── Typewriter placeholder ──────────────────────────────────
+    // ══════════════════════════════════════════════════════
+    //  MODE TOGGLE
+    // ══════════════════════════════════════════════════════
+
+    function setMode(next) {
+      mode = next;
+      document.body.classList.toggle("solution-mode", mode === "solution");
+      modeButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.mode === mode));
+      modeDesc.textContent = (mode === "vent")
+        ? "Vent mode: listen + reflect (no fixing unless asked)."
+        : "Solution mode: clarity-first (we can explore, or switch to concrete options if you want).";
+      const canReport = PLANS[getPlan()]?.reports;
+      reportBtn.style.display = (canReport && mode === "solution") ? "inline-block" : "none";
+    }
+
+    modeButtons.forEach(btn => btn.addEventListener("click", () => setMode(btn.dataset.mode)));
+
+    // ══════════════════════════════════════════════════════
+    //  TYPEWRITER PLACEHOLDER
+    // ══════════════════════════════════════════════════════
+
     const TW_PHRASES = [
       "I've been holding this in for a while...",
       "Something happened today that I can't shake...",
@@ -614,7 +1663,7 @@ function hideTypingDots(){
         input.placeholder = phrase.slice(0, twChar) + "|";
         if (twChar === 0) {
           twDeleting = false;
-          twPhrase = (twPhrase + 1) % TW_PHRASES.length;
+          twPhrase   = (twPhrase + 1) % TW_PHRASES.length;
           input.placeholder = "|";
           twTimer = setTimeout(typewriterStep, 380);
           return;
@@ -639,28 +1688,34 @@ function hideTypingDots(){
     input.addEventListener("focus", () => { if (!input.value) stopTypewriter(); });
     input.addEventListener("blur",  () => { if (!input.value) startTypewriter(); });
 
-    startTypewriter();
-    // ────────────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════
+    //  SEND MESSAGE
+    // ══════════════════════════════════════════════════════
 
     function sendMessage() {
-  if (isPending) return;
+      if (isPending) return;
+      const text = input.value.trim();
+      if (!text) return;
 
-  const text = input.value.trim();
-  if (!text) return;
+      // Anonymous session cap
+      if (!currentUser) {
+        if (anonMsgCount >= PLANS.anonymous.sessionCap) {
+          showUpgradePrompt("anonymous");
+          return;
+        }
+        anonMsgCount++;
+      }
 
-  setPending(true);
+      setPending(true);
+      addMsg("You", formatNoWall(text), text);
+      input.value = "";
+      input.style.height = "44px";
+      updateUI();
+      startTypewriter();
+      callBackend(text);
+    }
 
-  addMsg("You", formatNoWall(text), text);
-  input.value = "";
-  input.style.height = "44px";
-  updateUI();
-  startTypewriter();
-
-  callBackend(text);
-}
-
-    // enter to send (shift+enter = newline)
-    input.addEventListener("keydown", (e) => {
+    input.addEventListener("keydown", e => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         if (!sendBtn.disabled) sendMessage();
@@ -672,41 +1727,64 @@ function hideTypingDots(){
       if (input.value) stopTypewriter();
       else startTypewriter();
     });
+
     sendBtn.addEventListener("click", sendMessage);
 
+    // ══════════════════════════════════════════════════════
+    //  REPORT BUTTON
+    // ══════════════════════════════════════════════════════
+
     reportBtn.addEventListener("click", async () => {
-  if (mode !== "solution") return;
+      if (mode !== "solution") return;
+      if (!PLANS[getPlan()]?.reports) {
+        showUpgradePrompt(getPlan());
+        return;
+      }
 
-  reportBtn.disabled = true;
-  const oldLabel = reportBtn.textContent;
-  reportBtn.textContent = "Generating...";
+      reportBtn.disabled = true;
+      const oldLabel = reportBtn.textContent;
+      reportBtn.textContent = "Generating...";
 
-  try {
-    const res = await fetch(REPORT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ history })
+      try {
+        const res = await fetch(REPORT_URL, {
+          method:  "POST",
+          headers: authHeaders(),
+          body:    JSON.stringify({ history })
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          showUpgradePrompt(getPlan());
+          return;
+        }
+
+        const data = await res.json();
+        const reportText = data.report || "No report returned.";
+        addMsg(mascotName, formatNoWall(reportText), reportText);
+      } catch (e) {
+        addMsg(mascotName, "<p><b>Couldn't generate report.</b> Try again.</p>", "Couldn't generate report.");
+      } finally {
+        reportBtn.disabled    = false;
+        reportBtn.textContent = oldLabel;
+      }
     });
 
-    const data = await res.json();
-    const reportText = data.report || "No report returned.";
+    // ══════════════════════════════════════════════════════
+    //  CHECKOUT RESULT HANDLING
+    // ══════════════════════════════════════════════════════
 
-    addMsg(mascotName, formatNoWall(reportText), reportText);
-  } catch (e) {
-    addMsg(
-      mascotName,
-      "<p><b>Couldn't generate report.</b> Try again.</p>",
-      "Couldn't generate report. Try again."
-    );
-  } finally {
-    reportBtn.disabled = false;
-    reportBtn.textContent = oldLabel;
-  }
-});
+    (function handleCheckoutReturn() {
+      const params = new URLSearchParams(window.location.search);
+      const result = params.get("checkout");
+      if (!result) return;
+      // Clean up the URL
+      window.history.replaceState({}, "", window.location.pathname);
+      if (result === "success") {
+        showToast("Subscription activated! Your plan has been upgraded.", 5000);
+      } else if (result === "canceled") {
+        showToast("Checkout canceled — no charge was made.");
+      }
+    })();
 
-    // Seed message
-    addMsg(mascotName, `<p><b>Hi.</b> Vent or Solution — your call.</p><p>What's on your mind?</p>`);
-    updateUI();
   </script>
 </body>
 </html>
