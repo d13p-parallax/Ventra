@@ -72,7 +72,7 @@
     .top{
       display:flex;
       align-items:center;
-      justify-content:flex-end;
+      justify-content:space-between;
       gap:12px;
       padding:6px 0 14px;
       border-bottom:1px solid var(--line);
@@ -311,47 +311,18 @@
       display:flex;
       align-items:flex-end;
       gap:8px;
-      background:rgba(255,255,255,.72);
-      border:1.5px solid rgba(255,255,255,.75);
-      border-radius:28px 28px 28px 6px;
+      background:rgba(255,255,255,.97);
+      border:1.5px solid rgba(243,170,192,.3);
+      border-radius:28px;
       padding:8px 8px 8px 20px;
-      box-shadow:
-        0 8px 40px rgba(243,170,192,.28),
-        0 2px 12px rgba(0,0,0,.07),
-        0 0 0 1px rgba(255,255,255,.45) inset;
-      backdrop-filter:blur(28px) saturate(180%);
-      -webkit-backdrop-filter:blur(28px) saturate(180%);
+      box-shadow:0 4px 24px rgba(243,170,192,.2), 0 1px 6px rgba(0,0,0,.05);
+      backdrop-filter:blur(16px);
       transition:border-color .3s ease, box-shadow .3s ease;
     }
 
-    /* Bubble tail — outward curve at lower-left */
-    .composer::before{
-      content:'';
-      position:absolute;
-      bottom:-1px;
-      left:-18px;
-      width:20px;
-      height:20px;
-      background:rgba(255,255,255,.72);
-      backdrop-filter:blur(28px) saturate(180%);
-      -webkit-backdrop-filter:blur(28px) saturate(180%);
-      border-bottom-right-radius:100%;
-      border-right:1.5px solid rgba(255,255,255,.75);
-      border-bottom:1.5px solid rgba(255,255,255,.75);
-      box-shadow:4px 4px 12px rgba(243,170,192,.18);
-    }
-
     .composer:focus-within{
-      border-color:rgba(243,170,192,.6);
-      box-shadow:
-        0 8px 48px rgba(243,170,192,.38),
-        0 2px 12px rgba(0,0,0,.07),
-        0 0 0 5px rgba(243,170,192,.1),
-        0 0 0 1px rgba(255,255,255,.5) inset;
-    }
-
-    .composer:focus-within::before{
-      border-color:rgba(243,170,192,.6);
+      border-color:rgba(243,170,192,.65);
+      box-shadow:0 4px 32px rgba(243,170,192,.32), 0 1px 6px rgba(0,0,0,.05), 0 0 0 5px rgba(243,170,192,.1);
     }
 
     .textarea-wrap{
@@ -968,6 +939,10 @@
       <div class="card">
 
         <div class="top">
+          <div class="brand">
+            <h1 id="titleName">Ventra</h1>
+          </div>
+
           <!-- Sign-in button shown for anonymous users -->
           <button id="taglinePill" class="pill" style="cursor:pointer;" onclick="openAuthModal('signin')">Sign in</button>
 
