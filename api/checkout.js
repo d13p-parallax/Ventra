@@ -24,8 +24,8 @@ module.exports = async function handler(req, res) {
       payment_method_types: ["card"],
       customer_email:       user.email,
       line_items:           [{ price: priceId, quantity: 1 }],
-      success_url:          `${process.env.APP_URL}?checkout=success`,
-      cancel_url:           `${process.env.APP_URL}?checkout=canceled`,
+      success_url:          `${process.env.APP_URL || `https://${req.headers.host}`}?checkout=success`,
+      cancel_url:           `${process.env.APP_URL || `https://${req.headers.host}`}?checkout=canceled`,
       metadata:             { user_id: user.id },
       subscription_data:    { metadata: { user_id: user.id } },
     });
