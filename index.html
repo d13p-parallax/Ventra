@@ -449,39 +449,35 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      padding:0 24px 60px;
+      justify-content:center;
+      padding:24px;
     }
 
     .landingWrap{
       max-width:760px;
       width:100%;
-      padding-top:24px;
+      position:relative;
     }
 
     .landingTop{
-      display:flex;
-      justify-content:flex-end;
-      margin-bottom:52px;
+      position:absolute;
+      top:-8px;
+      right:0;
     }
 
     .landingHero{
       text-align:center;
-      margin-bottom:28px;
-    }
-
-    .landingHero .avatar{
-      width:48px;
-      height:48px;
-      border-radius:14px;
-      margin:0 auto 16px;
+      margin-bottom:36px;
+      padding-top:40px;
     }
 
     .landingTitle{
       font-family:'Dancing Script', cursive;
-      font-size:52px;
+      font-size:96px;
       font-weight:700;
-      margin:0 0 10px;
+      margin:0 0 12px;
       letter-spacing:0;
+      line-height:1;
     }
 
     .landingTagline{
@@ -861,7 +857,7 @@
       .pricingGrid{ grid-template-columns:1fr; }
       .userEmail{ display:none; }
       .usageText{ min-width:auto; }
-      .landingTitle{ font-size:28px; }
+      .landingTitle{ font-size:64px; }
       .landingTagline{ font-size:16px; }
     }
   </style>
