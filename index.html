@@ -1218,6 +1218,7 @@
       if (proEl)  proEl.innerHTML  = PLANS.pro.priceDisplay.replace("/mo","") + "<span>/mo</span>";
       if (preEl)  preEl.innerHTML  = PLANS.premium.priceDisplay.replace("/mo","") + "<span>/mo</span>";
     }
+    updateLandingPrices();
 
     async function signIn(email, password) {
       const { error } = await sb.auth.signInWithPassword({ email, password });
