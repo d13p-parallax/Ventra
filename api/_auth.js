@@ -38,9 +38,17 @@ async function requireAuth(req) {
     .single();
 
   if (profileErr || !profile) {
-    const err = new Error("Profile not found");
-    err.status = 403;
-    throw err;
+    const { data: newProfile, error: insertErr } = await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: user.id, plan: "basic" }, { onConflict: "id" })
+      .select("*")
+      .single();
+    if (insertErr || !newProfile) {
+      const err = new Error("Profile not found");
+      err.status = 403;
+      throw err;
+    }
+    return { user, profile: newProfile };
   }
 
   return { user, profile };
