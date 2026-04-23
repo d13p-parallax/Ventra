@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Ventra</title>
   <link rel="icon" type="image/x-icon" href="./favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <style>
@@ -100,7 +103,7 @@
       display:block;
     }
 
-    h1{ margin:0; font-size:18px; letter-spacing:.2px; }
+    h1{ margin:0; font-size:18px; letter-spacing:.2px; font-family:'Dancing Script', cursive; font-weight:700; }
     .sub{ color:var(--muted); font-size:12px; }
 
     .pill{
@@ -474,10 +477,11 @@
     }
 
     .landingTitle{
-      font-size:36px;
+      font-family:'Dancing Script', cursive;
+      font-size:52px;
       font-weight:700;
       margin:0 0 10px;
-      letter-spacing:-.5px;
+      letter-spacing:0;
     }
 
     .landingTagline{
@@ -876,12 +880,8 @@
       </div>
 
       <div class="landingHero">
-        <div class="avatar">
-          <img src="logo.png" alt="Ventra" />
-        </div>
         <h1 class="landingTitle">Ventra</h1>
         <p class="landingTagline">A safe space to process what's on your mind.</p>
-        <p class="landingSub">Warm. Steady. Private.</p>
       </div>
 
       <div class="pricingSection">
@@ -948,9 +948,6 @@
 
         <div class="top">
           <div class="brand">
-            <div class="avatar">
-              <img src="logo.png" alt="Ventra" />
-            </div>
             <h1 id="titleName">Ventra</h1>
           </div>
 
