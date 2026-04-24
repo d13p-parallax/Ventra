@@ -220,6 +220,24 @@
       border-radius:999px;
       overflow:hidden;
       background:rgba(255,255,255,.65);
+      position:relative;
+    }
+
+    .toggleSlider{
+      position:absolute;
+      top:3px; bottom:3px;
+      left:3px;
+      width:calc(50% - 6px);
+      background:#ffffff;
+      border-radius:999px;
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+      transition:left 0.24s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events:none;
+      z-index:0;
+    }
+
+    .toggle.solution-active .toggleSlider{
+      left:calc(50% + 3px);
     }
 
     .toggle button{
@@ -231,13 +249,14 @@
       font-size:13px;
       border-radius:0;
       font-family:inherit;
-      transition:opacity .2s;
+      transition:color .2s;
+      position:relative;
+      z-index:1;
     }
 
     .toggle button.active{
-      background:#ffffff;
+      background:transparent;
       color:var(--text);
-      box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
     }
 
     .toggle button:disabled{
@@ -373,6 +392,8 @@
       align-items:center;
       justify-content:center;
       flex-shrink:0;
+      position:relative;
+      overflow:hidden;
       transition:opacity .2s ease, transform .15s ease, background .2s ease;
     }
 
@@ -537,6 +558,16 @@
       flex-direction:column;
       gap:6px;
       backdrop-filter:blur(8px);
+      transition:transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .pricingCard:hover{
+      transform:translateY(-5px);
+      box-shadow:0 12px 32px rgba(243,170,192,.28);
+    }
+
+    .pricingFeatured:hover{
+      box-shadow:0 12px 36px rgba(243,170,192,.45);
     }
 
     .pricingFeatured{
@@ -846,6 +877,65 @@
       transform:translateX(-50%) translateY(0);
     }
 
+    /* ── Animations ────────────────────────── */
+    @keyframes landingSlideUp{
+      from{ opacity:0; transform:translateY(22px); }
+      to{   opacity:1; transform:translateY(0);    }
+    }
+
+    .landingHero{
+      animation:landingSlideUp 0.55s ease both;
+    }
+    .pricingTitle{
+      animation:landingSlideUp 0.5s 0.08s ease both;
+    }
+    .pricingCard:nth-child(1){
+      animation:landingSlideUp 0.5s 0.15s ease both;
+    }
+    .pricingCard:nth-child(2){
+      animation:landingSlideUp 0.5s 0.24s ease both;
+    }
+    .pricingCard:nth-child(3){
+      animation:landingSlideUp 0.5s 0.33s ease both;
+    }
+    .landingTrial{
+      animation:landingSlideUp 0.5s 0.40s ease both;
+    }
+
+    @keyframes msgSlideUp{
+      from{ opacity:0; transform:translateY(10px); }
+      to{   opacity:1; transform:translateY(0);    }
+    }
+
+    .msg{
+      animation:msgSlideUp 0.22s ease both;
+    }
+
+    @keyframes shake{
+      0%,100%{ transform:translateX(0);  }
+      20%    { transform:translateX(-7px); }
+      40%    { transform:translateX(7px);  }
+      60%    { transform:translateX(-4px); }
+      80%    { transform:translateX(4px);  }
+    }
+
+    .shake{ animation:shake 0.38s ease; }
+
+    @keyframes rippleAnim{
+      from{ transform:scale(0); opacity:0.45; }
+      to{   transform:scale(3.8); opacity:0;  }
+    }
+
+    .rippleSpan{
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      background:rgba(255,255,255,.45);
+      transform:scale(0);
+      animation:rippleAnim 0.45s ease-out forwards;
+      pointer-events:none;
+    }
+
     /* ── Responsive ─────────────────────────── */
     @media (max-width: 640px) {
       textarea{ resize:none; }
@@ -967,6 +1057,7 @@
         <div class="modebar">
           <div class="modeRow">
             <div class="toggle" id="modeToggle">
+              <span class="toggleSlider"></span>
               <button type="button" class="active" data-mode="vent">Vent</button>
               <button type="button" data-mode="solution">Solution</button>
             </div>
@@ -1163,30 +1254,59 @@
       // If appVisible and signed out: keep showing app (anonymous stay-in flow after sign-out)
     });
 
+    function fadeIn(el, displayType) {
+      el.style.display = displayType || "block";
+      el.style.opacity = "0";
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.style.transition = "opacity 0.25s ease";
+        el.style.opacity    = "1";
+        el.addEventListener("transitionend", () => {
+          el.style.transition = "";
+          el.style.opacity    = "";
+        }, { once: true });
+      }));
+    }
+
+    function fadeOut(el, cb) {
+      if (!el || el.style.display === "none" || !el.style.display) { if (cb) cb(); return; }
+      el.style.transition = "opacity 0.2s ease";
+      el.style.opacity    = "0";
+      setTimeout(() => {
+        el.style.display    = "none";
+        el.style.transition = "";
+        el.style.opacity    = "";
+        if (cb) cb();
+      }, 200);
+    }
+
     function showApp() {
       appVisible = true;
-      document.getElementById("landingView").style.display = "none";
-      document.getElementById("appView").style.display     = "block";
       updateUserBadge();
       updateUsageBar();
       enforcePlanUI();
       seedChat();
+      const landing = document.getElementById("landingView");
+      const app     = document.getElementById("appView");
+      if (app.style.display === "block") return;
+      fadeOut(landing, () => fadeIn(app, "block"));
     }
 
     function showLanding() {
       appVisible = false;
-      document.getElementById("appView").style.display     = "none";
-      document.getElementById("landingView").style.display = "flex";
       updateLandingPrices();
+      const app     = document.getElementById("appView");
+      const landing = document.getElementById("landingView");
+      fadeOut(app, () => fadeIn(landing, "flex"));
     }
 
     function startAnonymous() {
       appVisible = true;
-      document.getElementById("landingView").style.display = "none";
-      document.getElementById("appView").style.display     = "block";
       updateUserBadge();
       enforcePlanUI();
       seedChat();
+      const landing = document.getElementById("landingView");
+      const app     = document.getElementById("appView");
+      fadeOut(landing, () => fadeIn(app, "block"));
     }
 
     function seedChat() {
@@ -1344,6 +1464,43 @@
     //  AUTH MODAL
     // ══════════════════════════════════════════════════════
 
+    function openModal(id) {
+      const overlay = document.getElementById(id);
+      const box     = overlay.querySelector(".modalBox");
+      overlay.style.display  = "flex";
+      overlay.style.opacity  = "0";
+      box.style.opacity      = "0";
+      box.style.transform    = "scale(0.93)";
+      box.style.transition   = "none";
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        overlay.style.transition = "opacity 0.2s ease";
+        overlay.style.opacity    = "1";
+        box.style.transition     = "transform 0.25s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s ease";
+        box.style.transform      = "scale(1)";
+        box.style.opacity        = "1";
+      }));
+    }
+
+    function closeModal(id, cb) {
+      const overlay = document.getElementById(id);
+      if (!overlay || overlay.style.display === "none") { if (cb) cb(); return; }
+      const box = overlay.querySelector(".modalBox");
+      overlay.style.transition = "opacity 0.17s ease";
+      overlay.style.opacity    = "0";
+      box.style.transition     = "transform 0.17s ease, opacity 0.17s ease";
+      box.style.transform      = "scale(0.95)";
+      box.style.opacity        = "0";
+      setTimeout(() => {
+        overlay.style.display  = "none";
+        overlay.style.opacity  = "";
+        overlay.style.transition = "";
+        box.style.transform    = "";
+        box.style.opacity      = "";
+        box.style.transition   = "";
+        if (cb) cb();
+      }, 170);
+    }
+
     let authMode = "signin"; // "signin" | "signup"
 
     function openAuthModal(tab = "signin") {
@@ -1353,11 +1510,11 @@
       document.getElementById("authSuccess").style.display = "none";
       document.getElementById("authEmail").value    = "";
       document.getElementById("authPassword").value = "";
-      document.getElementById("authModal").style.display = "flex";
+      openModal("authModal");
     }
 
     function closeAuthModal() {
-      document.getElementById("authModal").style.display = "none";
+      closeModal("authModal");
     }
 
     function switchAuthTab(tab) {
@@ -1391,6 +1548,10 @@
           errEl.style.display = "block";
           btn.disabled = false;
           btn.textContent = "Sign In";
+          const form = document.getElementById("authForm");
+          form.classList.remove("shake");
+          void form.offsetWidth;
+          form.classList.add("shake");
         } else {
           closeAuthModal();
           // onAuthStateChange will call showApp()
@@ -1402,6 +1563,10 @@
           errEl.style.display = "block";
           btn.disabled = false;
           btn.textContent = "Create Account";
+          const form = document.getElementById("authForm");
+          form.classList.remove("shake");
+          void form.offsetWidth;
+          form.classList.add("shake");
         } else {
           sucEl.textContent   = "Account created! Check your email to confirm, then sign in.";
           sucEl.style.display = "block";
@@ -1459,17 +1624,15 @@
         actions.appendChild(premBtn);
       }
 
-      document.getElementById("upgradeModal").style.display = "flex";
+      openModal("upgradeModal");
     }
 
     function closeUpgradeModal() {
-      document.getElementById("upgradeModal").style.display = "none";
+      closeModal("upgradeModal");
     }
 
     function handleOverlayClick(e, modalId) {
-      if (e.target.id === modalId) {
-        document.getElementById(modalId).style.display = "none";
-      }
+      if (e.target.id === modalId) closeModal(modalId);
     }
 
     // ══════════════════════════════════════════════════════
@@ -1611,6 +1774,7 @@
     function setMode(next) {
       mode = next;
       document.body.classList.toggle("solution-mode", mode === "solution");
+      modeToggle.classList.toggle("solution-active", mode === "solution");
       modeButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.mode === mode));
       modeDesc.textContent = (mode === "vent")
         ? "Vent mode: listen + reflect (no fixing unless asked)."
@@ -1682,6 +1846,11 @@
       if (isPending) return;
       const text = input.value.trim();
       if (!text) return;
+
+      const ripple = document.createElement("span");
+      ripple.className = "rippleSpan";
+      sendBtn.appendChild(ripple);
+      ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
 
       // Anonymous session cap
       if (!currentUser) {
