@@ -1149,7 +1149,7 @@
   <!-- ══════════════════════════════════════════════════════
        LANDING VIEW — shown when logged out
   ══════════════════════════════════════════════════════ -->
-  <div id="landingView" class="landingView">
+  <div id="landingView" class="landingView" style="display:flex;">
     <div class="landingWrap">
 
       <div class="landingHero">
@@ -1461,9 +1461,12 @@
       // If appVisible and signed out: keep showing app (anonymous stay-in flow after sign-out)
     });
 
-    // Quick session check on load — skip landing flash for returning users
+    // Quick session check on load — hide landing immediately for returning users
     sb.auth.getSession().then(({ data: { session } }) => {
-      if (!session && !appVisible) showLanding();
+      if (session) {
+        // onAuthStateChange will call showApp(); pre-hide landing to avoid flash
+        document.getElementById("landingView").style.display = "none";
+      }
     });
 
     function fadeIn(el, displayType) {
