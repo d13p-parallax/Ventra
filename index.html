@@ -1419,6 +1419,7 @@
     // ══════════════════════════════════════════════════════
 
     function getPlan() {
+      if (currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) return "premium";
       return currentProfile?.plan || (currentUser ? "basic" : "anonymous");
     }
 
@@ -1586,7 +1587,7 @@
         tagline.style.display = "none";
 
         document.getElementById("userEmail").textContent = currentUser.email;
-        const plan      = currentProfile?.plan || "basic";
+        const plan      = getPlan();
         const planLabel = PLANS[plan]?.label || "Basic";
         const chip      = document.getElementById("planChip");
         chip.textContent = planLabel;
