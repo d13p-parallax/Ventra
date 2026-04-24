@@ -272,11 +272,11 @@
 
     /* ── Chat ───────────────────────────────── */
     .chat{
-      margin-top:22px;
-      background:transparent;
-      border:none;
-      padding:0;
+      flex:1;
+      overflow-y:auto;
+      padding:20px 24px;
       min-height:0;
+      scrollbar-width:thin;
     }
 
     .msg{
@@ -324,11 +324,10 @@
 
     /* ── Composer ───────────────────────────── */
     .composer{
-      position:fixed;
-      left:50%;
-      transform:translateX(-50%);
-      bottom:calc(44px + env(safe-area-inset-bottom, 0px));
-      width:min(980px, calc(100% - 48px));
+      position:relative;
+      width:100%;
+      max-width:780px;
+      margin:0 auto;
       display:flex;
       align-items:flex-end;
       gap:8px;
@@ -404,18 +403,13 @@
     .btn:disabled{ opacity:.28; cursor:not-allowed; }
 
     .footer{
-      position:fixed;
-      left:50%;
-      transform:translateX(-50%);
-      bottom:calc(10px + env(safe-area-inset-bottom, 0px));
-      width:min(980px, calc(100% - 48px));
       text-align:center;
       color:var(--muted);
       font-size:12px;
       line-height:1.3;
-      background:transparent;
-      padding:0;
-      margin:0;
+      padding:4px 0 0;
+      max-width:780px;
+      margin:0 auto;
     }
 
     .modeRow{
@@ -877,6 +871,171 @@
       transform:translateX(-50%) translateY(0);
     }
 
+    /* ── App shell layout ───────────────────── */
+    #appView{
+      height:100dvh;
+      overflow:hidden;
+    }
+
+    /* ── Sidebar ────────────────────────────── */
+    #sidebar{
+      width:240px;
+      flex-shrink:0;
+      height:100dvh;
+      display:flex;
+      flex-direction:column;
+      background:rgba(255,255,255,.6);
+      backdrop-filter:blur(16px);
+      border-right:1px solid var(--line);
+      overflow:hidden;
+      transition:transform .25s ease;
+      z-index:100;
+    }
+
+    .sidebarHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 14px 10px;
+      flex-shrink:0;
+      gap:8px;
+    }
+
+    .sidebarBrand{
+      font-family:'Dancing Script', cursive;
+      font-weight:700;
+      font-size:26px;
+      margin:0;
+      color:var(--text);
+    }
+
+    .newChatBtn{
+      display:flex;
+      align-items:center;
+      gap:5px;
+      background:none;
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:5px 9px;
+      font-size:12px;
+      cursor:pointer;
+      color:var(--muted);
+      font-family:inherit;
+      transition:background .2s;
+      white-space:nowrap;
+      flex-shrink:0;
+    }
+    .newChatBtn:hover{ background:rgba(0,0,0,.06); }
+
+    .chatHistoryList{
+      flex:1;
+      overflow-y:auto;
+      padding:4px 8px;
+      scrollbar-width:thin;
+    }
+
+    .chatHistoryEmpty{
+      font-size:12px;
+      color:var(--muted);
+      text-align:center;
+      margin:24px 0;
+      line-height:1.5;
+    }
+
+    .sidebarFooter{
+      flex-shrink:0;
+      padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));
+      border-top:1px solid var(--line);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .sidebarFooter .userBadge{
+      flex-direction:column;
+      align-items:flex-start;
+      justify-content:flex-start;
+      padding:6px 8px;
+      gap:6px;
+    }
+
+    .sidebarFooterBtn{
+      background:none;
+      border:none;
+      padding:8px 10px;
+      border-radius:8px;
+      font-size:13px;
+      color:var(--muted);
+      cursor:pointer;
+      font-family:inherit;
+      text-align:left;
+      width:100%;
+      transition:background .2s;
+    }
+    .sidebarFooterBtn:hover{ background:rgba(0,0,0,.05); }
+
+    /* ── Main area ──────────────────────────── */
+    #mainArea{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      min-width:0;
+    }
+
+    .mainHeader{
+      flex-shrink:0;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 16px 10px;
+      border-bottom:1px solid var(--line);
+      background:transparent;
+    }
+
+    .mainHeaderCenter{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+    }
+
+    .mainHeaderSide{
+      width:34px;
+      flex-shrink:0;
+    }
+
+    .sidebarToggle{
+      display:none;
+      background:none;
+      border:none;
+      cursor:pointer;
+      padding:5px;
+      border-radius:8px;
+      color:var(--muted);
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+      transition:background .2s;
+    }
+    .sidebarToggle:hover{ background:rgba(0,0,0,.06); }
+
+    .composerArea{
+      flex-shrink:0;
+      padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+      background:transparent;
+    }
+
+    /* Sidebar overlay (mobile) */
+    #sidebarOverlay{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.3);
+      z-index:99;
+    }
+
     /* ── Animations ────────────────────────── */
     @keyframes landingSlideUp{
       from{ opacity:0; transform:translateY(22px); }
@@ -948,15 +1107,30 @@
     }
 
     /* ── Responsive ─────────────────────────── */
+    @media (max-width: 768px) {
+      #sidebar{
+        position:fixed;
+        left:0;
+        top:0;
+        transform:translateX(-100%);
+      }
+      #sidebar.open{
+        transform:translateX(0);
+        box-shadow:4px 0 24px rgba(0,0,0,.12);
+      }
+      #sidebarOverlay.show{ display:block; }
+      .sidebarToggle{ display:flex; }
+      .mainHeaderSide{ width:36px; }
+    }
+
     @media (max-width: 640px) {
       textarea{ resize:none; }
       .role{ min-width:44px; font-size:11px; }
       .toggle button{ padding:12px 20px; font-size:14px; }
       .modeRow{ flex-wrap:wrap; justify-content:center; }
-      .modeRow .toggle{ margin:0 auto; }
       .reportBtn{ position:static; margin-top:4px; }
-      .composer{ width:calc(100% - 24px); padding-left:14px; }
-      .footer{ width:calc(100% - 24px); }
+      .composerArea{ padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px)); }
+      .chat{ padding:16px 14px; }
       .pricingGrid{ grid-template-columns:1fr; }
       .userEmail{ display:none; }
       .usageText{ min-width:auto; }
@@ -971,7 +1145,7 @@
   <!-- ══════════════════════════════════════════════════════
        LANDING VIEW — shown when logged out
   ══════════════════════════════════════════════════════ -->
-  <div id="landingView" class="landingView">
+  <div id="landingView" class="landingView" style="display:flex;">
     <div class="landingWrap">
 
       <div class="landingHero">
@@ -1037,35 +1211,48 @@
   <!-- ══════════════════════════════════════════════════════
        APP VIEW — shown when logged in OR anonymous mode
   ══════════════════════════════════════════════════════ -->
+  <div id="sidebarOverlay"></div>
   <div id="appView" style="display:none;">
-    <div class="wrap">
-      <div class="card">
 
-        <div class="top">
-          <div class="brand">
-            <h1 id="titleName">Ventra</h1>
-          </div>
+    <!-- ── SIDEBAR ──────────────────────────── -->
+    <div id="sidebar">
+      <div class="sidebarHeader">
+        <h2 class="sidebarBrand">Ventra</h2>
+        <button id="newChatBtn" class="newChatBtn">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          New
+        </button>
+      </div>
 
-          <!-- Sign-in button shown for anonymous users -->
-          <button id="taglinePill" class="pill" style="cursor:pointer;" onclick="openAuthModal('signin')">Sign in</button>
+      <nav id="chatHistoryList" class="chatHistoryList">
+        <p class="chatHistoryEmpty">Your chats will appear here.</p>
+      </nav>
 
-          <!-- User badge shown for logged-in users -->
-          <div id="userBadge" class="userBadge" style="display:none;">
-            <span id="userEmail" class="userEmail"></span>
-            <span id="planChip" class="planChip plan-basic">Basic</span>
-            <button class="badgeBtn" onclick="openBillingPortal()" id="manageBtn" style="display:none;">Manage</button>
-            <button class="badgeBtn" onclick="signOut()">Sign out</button>
-          </div>
+      <div class="sidebarFooter">
+        <div id="userBadge" class="userBadge" style="display:none;">
+          <span id="userEmail" class="userEmail"></span>
+          <span id="planChip" class="planChip plan-basic">Basic</span>
+          <button class="badgeBtn" onclick="openBillingPortal()" id="manageBtn" style="display:none;">Manage plan</button>
+          <button class="badgeBtn" onclick="signOut()">Sign out</button>
         </div>
+        <button id="taglinePill" class="sidebarFooterBtn" onclick="openAuthModal('signin')">Sign in</button>
+      </div>
+    </div>
 
-        <!-- Usage bar (basic/pro only) -->
-        <div id="usageBar" class="usageBar" style="display:none;">
-          <span id="usageText" class="usageText">0 / 10 messages today</span>
-          <div class="usageTrack"><div id="usageFill" class="usageFill" style="width:0%"></div></div>
-          <button class="upgradeLink" onclick="openUpgradeModal()">Upgrade</button>
-        </div>
+    <!-- ── MAIN AREA ─────────────────────────── -->
+    <div id="mainArea">
 
-        <div class="modebar">
+      <!-- Fixed header: mode toggle -->
+      <div class="mainHeader">
+        <button class="sidebarToggle" id="sidebarToggle" aria-label="Menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div class="mainHeaderCenter">
+          <div id="usageBar" class="usageBar" style="display:none;">
+            <span id="usageText" class="usageText">0 / 10 messages today</span>
+            <div class="usageTrack"><div id="usageFill" class="usageFill" style="width:0%"></div></div>
+            <button class="upgradeLink" onclick="openUpgradeModal()">Upgrade</button>
+          </div>
           <div class="modeRow">
             <div class="toggle" id="modeToggle">
               <span class="toggleSlider"></span>
@@ -1074,13 +1261,15 @@
             </div>
             <button type="button" class="pill reportBtn" id="reportBtn" style="display:none;">Get Report</button>
           </div>
-          <div class="modeDesc" id="modeDesc">
-            Vent mode: listen + reflect (no fixing unless asked).
-          </div>
         </div>
+        <div class="mainHeaderSide"></div>
+      </div>
 
-        <div class="chat" id="chat"></div>
+      <!-- Scrollable chat -->
+      <div class="chat" id="chat"></div>
 
+      <!-- Composer + disclaimer -->
+      <div class="composerArea">
         <div class="composer">
           <div class="textarea-wrap">
             <textarea id="input" placeholder="" rows="1"></textarea>
@@ -1093,13 +1282,12 @@
             </button>
           </div>
         </div>
-
         <div class="footer">
           <div>This is not a medical app and not a replacement for professional help.</div>
           <div class="warn" id="limitWarn" style="display:none;">Input too long — shorten it to 1500 characters.</div>
         </div>
-
       </div>
+
     </div>
   </div>
 
@@ -1215,7 +1403,6 @@
     const sendBtn     = document.getElementById("sendBtn");
     const limitWarn   = document.getElementById("limitWarn");
     const modeToggle  = document.getElementById("modeToggle");
-    const modeDesc    = document.getElementById("modeDesc");
     const modeButtons = Array.from(modeToggle.querySelectorAll("button"));
     const reportBtn   = document.getElementById("reportBtn");
 
@@ -1298,8 +1485,8 @@
       seedChat();
       const landing = document.getElementById("landingView");
       const app     = document.getElementById("appView");
-      if (app.style.display === "block") return;
-      fadeOut(landing, () => fadeIn(app, "block"));
+      if (app.style.display === "flex") return;
+      fadeOut(landing, () => fadeIn(app, "flex"));
     }
 
     function showLanding() {
@@ -1317,7 +1504,16 @@
       seedChat();
       const landing = document.getElementById("landingView");
       const app     = document.getElementById("appView");
-      fadeOut(landing, () => fadeIn(app, "block"));
+      fadeOut(landing, () => fadeIn(app, "flex"));
+    }
+
+    function newChat() {
+      history        = [];
+      chat.innerHTML = "";
+      chatSeeded     = false;
+      conversationId = null;
+      anonMsgCount   = 0;
+      seedChat();
     }
 
     function seedChat() {
@@ -1383,7 +1579,7 @@
         manage.style.display = (plan === "pro" || plan === "premium") ? "inline-block" : "none";
       } else {
         badge.style.display   = "none";
-        tagline.style.display = "inline-block";
+        tagline.style.display = "block";
       }
     }
 
@@ -1681,7 +1877,7 @@
         </div>
       `;
       chat.appendChild(typingEl);
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
     }
 
     function hideTypingDots() {
@@ -1699,7 +1895,7 @@
         <div class="bubble">${html}</div>
       `;
       chat.appendChild(wrap);
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
 
       if (plainTextForHistory) {
         if (role === "You")       history.push({ role: "user",      content: plainTextForHistory });
@@ -1781,7 +1977,7 @@
           bubbleEl.classList.remove("streaming");
           bubbleEl.innerHTML = formatNoWall(text);
           history.push({ role: "assistant", content: text });
-          window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+          chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
         };
 
         outer: while (true) {
@@ -1810,7 +2006,7 @@
               }
               accText += parsed.c;
               bubbleEl.textContent = accText;
-              window.scrollTo(0, document.body.scrollHeight);
+              chat.scrollTop = chat.scrollHeight;
             }
 
             if (parsed.done) {
@@ -1854,14 +2050,31 @@
       document.body.classList.toggle("solution-mode", mode === "solution");
       modeToggle.classList.toggle("solution-active", mode === "solution");
       modeButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.mode === mode));
-      modeDesc.textContent = (mode === "vent")
-        ? "Vent mode: listen + reflect (no fixing unless asked)."
-        : "Solution mode: clarity-first (we can explore, or switch to concrete options if you want).";
       const canReport = PLANS[getPlan()]?.reports;
       reportBtn.style.display = (canReport && mode === "solution") ? "inline-block" : "none";
     }
 
     modeButtons.forEach(btn => btn.addEventListener("click", () => setMode(btn.dataset.mode)));
+
+    // ── Sidebar toggle ────────────────────────
+    const sidebar        = document.getElementById("sidebar");
+    const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+    function openSidebar() {
+      sidebar.classList.add("open");
+      sidebarOverlay.classList.add("show");
+    }
+    function closeSidebar() {
+      sidebar.classList.remove("open");
+      sidebarOverlay.classList.remove("show");
+    }
+
+    document.getElementById("sidebarToggle").addEventListener("click", () => {
+      sidebar.classList.contains("open") ? closeSidebar() : openSidebar();
+    });
+    sidebarOverlay.addEventListener("click", closeSidebar);
+
+    document.getElementById("newChatBtn").addEventListener("click", newChat);
 
     // ══════════════════════════════════════════════════════
     //  TYPEWRITER PLACEHOLDER
