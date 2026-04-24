@@ -921,6 +921,17 @@
 
     .shake{ animation:shake 0.38s ease; }
 
+    @keyframes blink{
+      0%,100%{ opacity:1; }
+      50%    { opacity:0; }
+    }
+
+    .bubble.streaming::after{
+      content:'▋';
+      animation:blink 0.75s step-end infinite;
+      margin-left:1px;
+    }
+
     @keyframes rippleAnim{
       from{ transform:scale(0); opacity:0.45; }
       to{   transform:scale(3.8); opacity:0;  }
@@ -1717,7 +1728,6 @@
       try {
         showTypingDots();
         await new Promise(requestAnimationFrame);
-        await new Promise(r => setTimeout(r, 300));
 
         const historyForSend =
           (history.length &&
@@ -1738,7 +1748,7 @@
           })
         });
 
-        // Handle rate limit / plan cap
+        // 429 is returned before streaming starts — still JSON
         if (res.status === 429) {
           const data = await res.json();
           hideTypingDots();
@@ -1747,19 +1757,87 @@
           return;
         }
 
-        const data = await res.json();
-
-        if (data.mode && data.mode !== mode)        setMode(data.mode);
-        if (data.conversationId)                    conversationId = data.conversationId;
-        if (data.dayCount != null) {
-          currentDayCount = data.dayCount;
-          updateUsageBar();
+        if (!res.ok) {
+          hideTypingDots();
+          addMsg(mascotName, "<p><b>Something went wrong.</b> The connection didn't work.</p>", "Something went wrong.");
+          setPending(false);
+          return;
         }
 
-        const replyText = data.reply || "No reply returned.";
-        hideTypingDots();
-        addMsg(mascotName, formatNoWall(replyText), replyText);
-        setPending(false);
+        // ── Stream SSE ──────────────────────────────────────
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf       = "";
+        let streamEl  = null;
+        let bubbleEl  = null;
+        let accText   = "";
+
+        const finalize = (text) => {
+          if (!text) return;
+          if (!streamEl) {
+            addMsg(mascotName, formatNoWall(text), text);
+            return;
+          }
+          bubbleEl.classList.remove("streaming");
+          bubbleEl.innerHTML = formatNoWall(text);
+          history.push({ role: "assistant", content: text });
+          window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+        };
+
+        outer: while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+
+          const parts = buf.split("\n\n");
+          buf = parts.pop();
+
+          for (const part of parts) {
+            if (!part.startsWith("data: ")) continue;
+            const raw = part.slice(6).trim();
+            if (!raw) continue;
+            let parsed;
+            try { parsed = JSON.parse(raw); } catch { continue; }
+
+            if (parsed.c !== undefined) {
+              if (!streamEl) {
+                hideTypingDots();
+                streamEl = document.createElement("div");
+                streamEl.className = "msg bot";
+                streamEl.innerHTML = `<div class="role"></div><div class="bubble streaming"></div>`;
+                bubbleEl = streamEl.querySelector(".bubble");
+                chat.appendChild(streamEl);
+              }
+              accText += parsed.c;
+              bubbleEl.textContent = accText;
+              window.scrollTo(0, document.body.scrollHeight);
+            }
+
+            if (parsed.done) {
+              if (parsed.mode && parsed.mode !== mode) setMode(parsed.mode);
+              if (parsed.conversationId) conversationId = parsed.conversationId;
+              if (parsed.dayCount != null) { currentDayCount = parsed.dayCount; updateUsageBar(); }
+              finalize(accText);
+              setPending(false);
+              break outer;
+            }
+
+            if (parsed.error) {
+              hideTypingDots();
+              finalize(accText || "Something went wrong.");
+              if (!accText) addMsg(mascotName, "<p><b>Something went wrong.</b> The connection didn't work.</p>", "Something went wrong.");
+              setPending(false);
+              break outer;
+            }
+          }
+        }
+
+        // Stream ended without done event — finalize whatever arrived
+        if (accText && bubbleEl && bubbleEl.classList.contains("streaming")) {
+          finalize(accText);
+          setPending(false);
+        }
+
       } catch (e) {
         hideTypingDots();
         addMsg(mascotName, "<p><b>Something went wrong.</b> The connection didn't work.</p>", "Something went wrong.");

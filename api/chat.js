@@ -182,7 +182,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // ── 5. Build & call OpenAI ──
+    // ── 5. Build input ──
     const cleanHistory = normalizeHistory(history);
     const instructions = buildInstructions(effectiveMode);
     const input = [
@@ -191,10 +191,32 @@ module.exports = async function handler(req, res) {
       { role: "user", content: message }
     ];
 
-    const response = await client.responses.create({ model: "gpt-5-mini", input });
-    const reply = response.output_text || "I didn't get text back—try again.";
+    // ── 6. Stream response via SSE ──
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("X-Accel-Buffering", "no");
 
-    // ── 6. Persist messages for Pro/Premium ──
+    let reply = "";
+    try {
+      const stream = await client.responses.create({ model: "gpt-5-mini", input, stream: true });
+      for await (const event of stream) {
+        if (event.type === "response.output_text.delta") {
+          reply += event.delta;
+          res.write(`data: ${JSON.stringify({ c: event.delta })}\n\n`);
+        }
+      }
+    } catch (aiErr) {
+      console.error(aiErr);
+      try {
+        res.write(`data: ${JSON.stringify({ error: "AI connection failed." })}\n\n`);
+        res.end();
+      } catch (_) {}
+      return;
+    }
+
+    if (!reply) reply = "I didn't get text back—try again.";
+
+    // ── 7. Persist messages for Pro/Premium ──
     let activeConversationId = conversationId;
     if (user && planConfig.historyPersist) {
       if (!activeConversationId) {
@@ -214,9 +236,12 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    res.json({ reply, mode: effectiveMode, conversationId: activeConversationId, dayCount });
+    res.write(`data: ${JSON.stringify({ done: true, mode: effectiveMode, conversationId: activeConversationId, dayCount })}\n\n`);
+    res.end();
   } catch (err) {
     console.error(err);
-    res.status(500).json({ reply: "Something went wrong connecting to AI." });
+    if (!res.headersSent) {
+      res.status(500).json({ reply: "Something went wrong connecting to AI." });
+    }
   }
 };
