@@ -274,7 +274,7 @@
     .chat{
       flex:1;
       overflow-y:auto;
-      padding:20px 24px;
+      padding:20px max(24px, calc(50% - 390px));
       min-height:0;
       scrollbar-width:thin;
     }
@@ -888,8 +888,12 @@
       backdrop-filter:blur(16px);
       border-right:1px solid var(--line);
       overflow:hidden;
-      transition:transform .25s ease;
+      transition:transform .25s ease, width .25s ease;
       z-index:100;
+    }
+    #appView.sidebar-collapsed #sidebar{
+      width:0;
+      border-right:none;
     }
 
     .sidebarHeader{
@@ -1007,7 +1011,7 @@
     }
 
     .sidebarToggle{
-      display:none;
+      display:flex;
       background:none;
       border:none;
       cursor:pointer;
@@ -1145,7 +1149,7 @@
   <!-- ══════════════════════════════════════════════════════
        LANDING VIEW — shown when logged out
   ══════════════════════════════════════════════════════ -->
-  <div id="landingView" class="landingView" style="display:flex;">
+  <div id="landingView" class="landingView">
     <div class="landingWrap">
 
       <div class="landingHero">
@@ -1163,7 +1167,7 @@
             <div class="pricingPrice">Free</div>
             <ul class="pricingFeatureList">
               <li>10 messages / day</li>
-              <li>Vent mode</li>
+              <li>Vent + Solution mode</li>
               <li>Free forever</li>
             </ul>
             <button class="pricingCta" onclick="openAuthModal('signup')">Get started free</button>
@@ -1344,14 +1348,14 @@
         label:          "Trial",
         sessionCap:     5,
         dailyMessages:  null,
-        modes:          ["vent"],
+        modes:          ["vent", "solution"],
         historyPersist: false,
         reports:        false,
       },
       basic: {
         label:          "Basic",
         dailyMessages:  10,
-        modes:          ["vent"],
+        modes:          ["vent", "solution"],
         historyPersist: false,
         reports:        false,
       },
@@ -1437,6 +1441,8 @@
     //  SUPABASE AUTH
     // ══════════════════════════════════════════════════════
 
+    const ADMIN_EMAILS = ["devshruti1321@gmail.com"];
+
     sb.auth.onAuthStateChange(async (event, session) => {
       currentSession = session;
       currentUser    = session?.user ?? null;
@@ -1444,12 +1450,20 @@
       if (currentUser) {
         const { data } = await sb.from("profiles").select("*").eq("id", currentUser.id).single();
         currentProfile = data;
+        if (ADMIN_EMAILS.includes(currentUser.email)) {
+          currentProfile = { ...currentProfile, plan: "premium" };
+        }
         showApp();
       } else if (!appVisible) {
         // Not logged in and not in anonymous mode — show landing
         showLanding();
       }
       // If appVisible and signed out: keep showing app (anonymous stay-in flow after sign-out)
+    });
+
+    // Quick session check on load — skip landing flash for returning users
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (!session && !appVisible) showLanding();
     });
 
     function fadeIn(el, displayType) {
@@ -1944,7 +1958,6 @@
           })
         });
 
-        // 429 is returned before streaming starts — still JSON
         if (res.status === 429) {
           const data = await res.json();
           hideTypingDots();
@@ -1960,85 +1973,57 @@
           return;
         }
 
-        // ── Stream SSE ──────────────────────────────────────
-        const reader  = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buf       = "";
-        let streamEl  = null;
-        let bubbleEl  = null;
-        let accText   = "";
+        const data = await res.json();
 
-        const finalize = (text) => {
-          if (!text) return;
-          if (!streamEl) {
-            addMsg(mascotName, formatNoWall(text), text);
-            return;
-          }
-          bubbleEl.classList.remove("streaming");
-          bubbleEl.innerHTML = formatNoWall(text);
-          history.push({ role: "assistant", content: text });
-          chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
-        };
-
-        outer: while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-
-          const parts = buf.split("\n\n");
-          buf = parts.pop();
-
-          for (const part of parts) {
-            if (!part.startsWith("data: ")) continue;
-            const raw = part.slice(6).trim();
-            if (!raw) continue;
-            let parsed;
-            try { parsed = JSON.parse(raw); } catch { continue; }
-
-            if (parsed.c !== undefined) {
-              if (!streamEl) {
-                hideTypingDots();
-                streamEl = document.createElement("div");
-                streamEl.className = "msg bot";
-                streamEl.innerHTML = `<div class="role"></div><div class="bubble streaming"></div>`;
-                bubbleEl = streamEl.querySelector(".bubble");
-                chat.appendChild(streamEl);
-              }
-              accText += parsed.c;
-              bubbleEl.textContent = accText;
-              chat.scrollTop = chat.scrollHeight;
-            }
-
-            if (parsed.done) {
-              if (parsed.mode && parsed.mode !== mode) setMode(parsed.mode);
-              if (parsed.conversationId) conversationId = parsed.conversationId;
-              if (parsed.dayCount != null) { currentDayCount = parsed.dayCount; updateUsageBar(); }
-              finalize(accText);
-              setPending(false);
-              break outer;
-            }
-
-            if (parsed.error) {
-              hideTypingDots();
-              finalize(accText || "Something went wrong.");
-              if (!accText) addMsg(mascotName, "<p><b>Something went wrong.</b> The connection didn't work.</p>", "Something went wrong.");
-              setPending(false);
-              break outer;
-            }
-          }
-        }
-
-        // Stream ended without done event — finalize whatever arrived
-        if (accText && bubbleEl && bubbleEl.classList.contains("streaming")) {
-          finalize(accText);
+        if (data.error) {
+          hideTypingDots();
+          addMsg(mascotName, "<p><b>Something went wrong.</b> The connection didn't work.</p>", "Something went wrong.");
           setPending(false);
+          return;
         }
+
+        const replyText = data.reply || "I didn't get text back—try again.";
+
+        if (data.mode && data.mode !== mode) setMode(data.mode);
+        if (data.conversationId) conversationId = data.conversationId;
+        if (data.dayCount != null) { currentDayCount = data.dayCount; updateUsageBar(); }
+
+        history.push({ role: "assistant", content: replyText });
+
+        hideTypingDots();
+        typewriterMsg(replyText);
+        setPending(false);
 
       } catch (e) {
         hideTypingDots();
         addMsg(mascotName, "<p><b>Something went wrong.</b> The connection didn't work.</p>", "Something went wrong.");
         setPending(false);
       }
+    }
+
+    function typewriterMsg(text) {
+      const msgEl    = document.createElement("div");
+      msgEl.className = "msg bot";
+      msgEl.innerHTML = `<div class="role"></div><div class="bubble streaming"></div>`;
+      const bubbleEl  = msgEl.querySelector(".bubble");
+      chat.appendChild(msgEl);
+      chat.scrollTop = chat.scrollHeight;
+
+      const speed = Math.max(4, Math.min(14, Math.round(2800 / text.length)));
+      let i = 0;
+
+      function tick() {
+        if (i < text.length) {
+          bubbleEl.textContent = text.slice(0, ++i);
+          chat.scrollTop = chat.scrollHeight;
+          setTimeout(tick, speed);
+        } else {
+          bubbleEl.classList.remove("streaming");
+          bubbleEl.innerHTML = formatNoWall(text);
+          chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+        }
+      }
+      tick();
     }
 
     // ══════════════════════════════════════════════════════
@@ -2070,7 +2055,11 @@
     }
 
     document.getElementById("sidebarToggle").addEventListener("click", () => {
-      sidebar.classList.contains("open") ? closeSidebar() : openSidebar();
+      if (window.innerWidth <= 768) {
+        sidebar.classList.contains("open") ? closeSidebar() : openSidebar();
+      } else {
+        document.getElementById("appView").classList.toggle("sidebar-collapsed");
+      }
     });
     sidebarOverlay.addEventListener("click", closeSidebar);
 

@@ -8,7 +8,7 @@ const PLANS = {
     label:          "Trial",
     sessionCap:     5,          // total messages per browser session, no account
     dailyMessages:  null,       // n/a for anonymous
-    modes:          ["vent"],
+    modes:          ["vent", "solution"],
     historyPersist: false,
     reports:        false,
   },
@@ -16,7 +16,7 @@ const PLANS = {
     label:          "Basic",
     sessionCap:     null,
     dailyMessages:  10,         // messages per UTC day
-    modes:          ["vent"],
+    modes:          ["vent", "solution"],
     historyPersist: false,
     reports:        false,
   },

@@ -4,6 +4,7 @@ const { requireAuth, checkAndIncrementUsage, supabaseAdmin } = require("./_auth"
 const { PLANS } = require("./_plans");
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const ADMIN_EMAILS = ["devshruti1321@gmail.com"];
 
 function detectDirectRequest(text = "") {
   const t = text.toLowerCase();
@@ -138,6 +139,9 @@ module.exports = async function handler(req, res) {
       } catch (e) {
         return res.status(e.status || 401).json({ error: e.message });
       }
+      if (user && ADMIN_EMAILS.includes(user.email)) {
+        profile = { ...profile, plan: "premium" };
+      }
     }
 
     const plan = profile?.plan || "anonymous";
@@ -191,30 +195,15 @@ module.exports = async function handler(req, res) {
       { role: "user", content: message }
     ];
 
-    // ── 6. Stream response via SSE ──
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("X-Accel-Buffering", "no");
-
-    let reply = "";
+    // ── 6. Call OpenAI (non-streaming) ──
+    let reply;
     try {
-      const stream = await client.responses.create({ model: "gpt-5-mini", input, stream: true });
-      for await (const event of stream) {
-        if (event.type === "response.output_text.delta") {
-          reply += event.delta;
-          res.write(`data: ${JSON.stringify({ c: event.delta })}\n\n`);
-        }
-      }
+      const response = await client.responses.create({ model: "gpt-5-mini", input });
+      reply = response.output_text || "I didn't get text back—try again.";
     } catch (aiErr) {
       console.error(aiErr);
-      try {
-        res.write(`data: ${JSON.stringify({ error: "AI connection failed." })}\n\n`);
-        res.end();
-      } catch (_) {}
-      return;
+      return res.status(502).json({ error: "AI connection failed." });
     }
-
-    if (!reply) reply = "I didn't get text back—try again.";
 
     // ── 7. Persist messages for Pro/Premium ──
     let activeConversationId = conversationId;
@@ -236,8 +225,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    res.write(`data: ${JSON.stringify({ done: true, mode: effectiveMode, conversationId: activeConversationId, dayCount })}\n\n`);
-    res.end();
+    res.json({ reply, mode: effectiveMode, conversationId: activeConversationId, dayCount });
   } catch (err) {
     console.error(err);
     if (!res.headersSent) {
