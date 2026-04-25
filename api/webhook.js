@@ -1,4 +1,3 @@
-require("dotenv").config();
 const Stripe = require("stripe");
 const { supabaseAdmin } = require("./_auth");
 

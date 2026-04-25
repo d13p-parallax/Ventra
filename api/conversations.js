@@ -1,4 +1,3 @@
-require("dotenv").config();
 const { requireAuth, supabaseAdmin } = require("./_auth");
 const { PLANS } = require("./_plans");
 

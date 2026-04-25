@@ -1,4 +1,3 @@
-require("dotenv").config();
 const OpenAI = require("openai");
 const { requireAuth, checkAndIncrementUsage, supabaseAdmin } = require("./_auth");
 const { PLANS } = require("./_plans");

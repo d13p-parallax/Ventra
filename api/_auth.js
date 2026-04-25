@@ -2,7 +2,6 @@
 // Shared auth helpers — require()'d by other handlers.
 // Underscore prefix prevents Vercel from exposing this as a route.
 
-require("dotenv").config();
 const { createClient } = require("@supabase/supabase-js");
 
 // Service role client — bypasses RLS. Only used server-side.
