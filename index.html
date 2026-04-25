@@ -1437,6 +1437,7 @@
     let conversationId   = null;
     let anonMsgCount     = 0;
     let currentDayCount  = 0;
+    let hasSubscription  = false;
     let appVisible       = false;  // true when appView is showing
     let chatSeeded       = false;  // seed greeting only once
 
@@ -1579,9 +1580,11 @@
       try {
         const res = await fetch("/api/usage", { headers: authHeaders() });
         if (res.ok) {
-          const { dayCount } = await res.json();
-          currentDayCount = dayCount;
+          const data = await res.json();
+          currentDayCount = data.dayCount;
+          hasSubscription = data.hasSubscription ?? false;
           updateUsageBar();
+          updateUI();
         }
       } catch {}
       if (PLANS[getPlan()]?.historyPersist) loadConversationList();
@@ -1710,8 +1713,8 @@
         chip.textContent = planLabel;
         chip.className   = "planChip plan-" + plan;
 
-        // Show "Manage" only if they have a paid plan
-        manage.style.display = (plan === "pro" || plan === "premium") ? "inline-block" : "none";
+        // Show "Manage" only if they have an active Stripe subscription
+        manage.style.display = hasSubscription ? "inline-block" : "none";
       } else {
         badge.style.display   = "none";
         tagline.style.display = "block";
@@ -2106,7 +2109,8 @@
         const replyText = data.reply || "I didn't get text back—try again.";
 
         if (data.mode && data.mode !== mode) setMode(data.mode);
-        if (data.conversationId) conversationId = data.conversationId;
+        if (data.conversationId && !conversationId) { conversationId = data.conversationId; loadConversationList(); }
+        else if (data.conversationId) conversationId = data.conversationId;
         if (data.dayCount != null) { currentDayCount = data.dayCount; updateUsageBar(); }
 
         history.push({ role: "assistant", content: replyText });

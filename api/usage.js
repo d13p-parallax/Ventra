@@ -22,5 +22,11 @@ module.exports = async function handler(req, res) {
   const dayCount = data?.message_count ?? 0;
   const cap = PLANS[profile.plan]?.dailyMessages ?? null;
 
-  return res.status(200).json({ dayCount, cap });
+  const { data: sub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("stripe_customer_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  return res.status(200).json({ dayCount, cap, hasSubscription: !!sub?.stripe_customer_id });
 };
