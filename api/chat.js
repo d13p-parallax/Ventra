@@ -3,7 +3,6 @@ const { requireAuth, checkAndIncrementUsage, supabaseAdmin } = require("./_auth"
 const { PLANS } = require("./_plans");
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const ADMIN_EMAILS = ["devshruti1321@gmail.com"];
 
 function detectDirectRequest(text = "") {
   const t = text.toLowerCase();
@@ -142,9 +141,6 @@ module.exports = async function handler(req, res) {
         profile = result.profile;
       } catch (e) {
         return res.status(e.status || 401).json({ error: e.message });
-      }
-      if (user && ADMIN_EMAILS.includes(user.email)) {
-        profile = { ...profile, plan: "premium" };
       }
     }
 

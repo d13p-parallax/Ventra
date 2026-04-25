@@ -4,6 +4,8 @@
 
 const { createClient } = require("@supabase/supabase-js");
 
+const ADMIN_EMAILS = ["devshruti1321@gmail.com"];
+
 // Service role client — bypasses RLS. Only used server-side.
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -50,6 +52,10 @@ async function requireAuth(req) {
       throw err;
     }
     return { user, profile: newProfile };
+  }
+
+  if (ADMIN_EMAILS.includes(user.email)) {
+    profile = { ...profile, plan: "premium" };
   }
 
   return { user, profile };
