@@ -38,13 +38,15 @@ async function requireAuth(req) {
     .single();
 
   if (profileErr || !profile) {
+    if (profileErr) console.error("[auth] profile select error:", profileErr.message, profileErr.code);
     const { data: newProfile, error: insertErr } = await supabaseAdmin
       .from("profiles")
       .upsert({ id: user.id, plan: "basic" }, { onConflict: "id" })
       .select("*")
       .single();
     if (insertErr || !newProfile) {
-      const err = new Error("Profile not found");
+      console.error("[auth] profile upsert error:", insertErr?.message, insertErr?.code, insertErr?.details);
+      const err = new Error(`Profile upsert failed: ${insertErr?.message || "no data returned"}`);
       err.status = 403;
       throw err;
     }
