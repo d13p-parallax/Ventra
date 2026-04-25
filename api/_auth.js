@@ -54,11 +54,11 @@ async function requireAuth(req) {
     return { user, profile: newProfile };
   }
 
-  if (ADMIN_EMAILS.includes(user.email)) {
-    profile = { ...profile, plan: "premium" };
-  }
+  const finalProfile = ADMIN_EMAILS.includes(user.email)
+    ? { ...profile, plan: "premium" }
+    : profile;
 
-  return { user, profile };
+  return { user, profile: finalProfile };
 }
 
 // Checks and increments today's usage for a logged-in user.
