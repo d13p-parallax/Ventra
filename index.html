@@ -946,6 +946,45 @@
       line-height:1.5;
     }
 
+    .chatHistoryItem{
+      display:block;
+      width:100%;
+      text-align:left;
+      background:none;
+      border:none;
+      border-radius:8px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-family:inherit;
+      transition:background .15s;
+      margin-bottom:2px;
+    }
+    .chatHistoryItem:hover{ background:rgba(0,0,0,.06); }
+    .chatHistoryItem.active{ background:rgba(0,0,0,.09); }
+    .chatHistoryItemPreview{
+      font-size:13px;
+      color:var(--text);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      display:block;
+    }
+    .chatHistoryItemMeta{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      margin-top:3px;
+    }
+    .chatHistoryItemDate{ font-size:11px; color:var(--muted); }
+    .chatHistoryItemMode{
+      font-size:10px;
+      color:var(--muted);
+      background:rgba(0,0,0,.07);
+      border-radius:4px;
+      padding:1px 5px;
+      text-transform:capitalize;
+    }
+
     .sidebarFooter{
       flex-shrink:0;
       padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));
@@ -1501,6 +1540,7 @@
       updateUsageBar();
       enforcePlanUI();
       seedChat();
+      if (currentUser) syncProfile();
       const landing = document.getElementById("landingView");
       const app     = document.getElementById("appView");
       if (app.style.display === "flex") return;
@@ -1531,7 +1571,83 @@
       chatSeeded     = false;
       conversationId = null;
       anonMsgCount   = 0;
+      document.querySelectorAll(".chatHistoryItem.active").forEach(el => el.classList.remove("active"));
       seedChat();
+    }
+
+    async function syncProfile() {
+      try {
+        const res = await fetch("/api/usage", { headers: authHeaders() });
+        if (res.ok) {
+          const { dayCount } = await res.json();
+          currentDayCount = dayCount;
+          updateUsageBar();
+        }
+      } catch {}
+      if (PLANS[getPlan()]?.historyPersist) loadConversationList();
+    }
+
+    async function loadConversationList() {
+      const list = document.getElementById("chatHistoryList");
+      try {
+        const res = await fetch("/api/conversations", { headers: authHeaders() });
+        if (!res.ok) return;
+        const convs = await res.json();
+        if (!convs.length) return;
+        list.innerHTML = "";
+        convs.forEach(c => {
+          const btn = document.createElement("button");
+          btn.className  = "chatHistoryItem";
+          btn.dataset.id = c.id;
+          btn.innerHTML  = `
+            <span class="chatHistoryItemPreview">${escapeHtml(c.preview)}</span>
+            <span class="chatHistoryItemMeta">
+              <span class="chatHistoryItemDate">${formatConvDate(c.created_at)}</span>
+              <span class="chatHistoryItemMode">${escapeHtml(c.mode)}</span>
+            </span>
+          `;
+          btn.addEventListener("click", () => openConversation(c.id));
+          list.appendChild(btn);
+        });
+      } catch {}
+    }
+
+    function formatConvDate(iso) {
+      const d    = new Date(iso);
+      const diff = Date.now() - d;
+      if (diff < 86400000)  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      if (diff < 604800000) return d.toLocaleDateString([], { weekday: "short" });
+      return d.toLocaleDateString([], { month: "short", day: "numeric" });
+    }
+
+    async function openConversation(id) {
+      document.querySelectorAll(".chatHistoryItem").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.id === id);
+      });
+      if (window.innerWidth <= 768) closeSidebar();
+      try {
+        const res = await fetch(`/api/messages?conversation_id=${encodeURIComponent(id)}`, {
+          headers: authHeaders()
+        });
+        if (!res.ok) { showToast("Couldn't load conversation."); return; }
+        const msgs = await res.json();
+        chat.innerHTML = "";
+        history        = [];
+        chatSeeded     = true;
+        conversationId = id;
+        anonMsgCount   = 0;
+        msgs.forEach(m => {
+          const role = m.role === "user" ? "You" : mascotName;
+          const html = m.role === "user"
+            ? `<p>${escapeHtml(m.content)}</p>`
+            : formatNoWall(m.content);
+          addMsg(role, html, m.content);
+        });
+        chat.scrollTo({ top: chat.scrollHeight, behavior: "instant" });
+        updateUI();
+      } catch {
+        showToast("Couldn't load conversation.");
+      }
     }
 
     function seedChat() {
@@ -1570,6 +1686,7 @@
       currentUser      = null;
       chat.innerHTML   = "";
       appVisible       = false;
+      document.getElementById("chatHistoryList").innerHTML = '<p class="chatHistoryEmpty">Your chats will appear here.</p>';
       showLanding();
     }
 
